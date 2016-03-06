@@ -1,0 +1,10 @@
+{
+  name: 'string',
+  passport: '[string(8)]',
+  birth: '[Birth]',
+  age: function() {
+    var defference = new Date() - birth.date;
+    return Math.floor(defference / 31536000000);
+  },
+  address: '[Address]'
+}

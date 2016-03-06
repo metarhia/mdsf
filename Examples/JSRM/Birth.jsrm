@@ -1,0 +1,4 @@
+﻿{
+  date: 'Date',
+  place: '[string]'
+}

@@ -17,11 +17,11 @@ JSRS.parse = function(jsrs) {
   return exported;
 };
 
-// Usage example
+// JSRS usage example
 
 fs.readFile('./person.jsrs', function(err, jsrs) {
   console.log('JavaScript Record Serialization');
   var person = JSRS.parse(jsrs);
   console.dir(person);
-  console.log('Age = ' + person.age());
+  console.log('Age = ' + person.age() + '\n');
 });
