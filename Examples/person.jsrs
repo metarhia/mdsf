@@ -1,0 +1,12 @@
+{
+  name: ['Marcus', 'Aurelius'].join(' '),
+  passport: 'AE' + '127095',
+  birth: {
+    date: new Date('1990-02-15'),
+    place: 'Rome'
+  },
+  age: function() {
+    var defference = new Date() - birth.date;
+    return Math.floor(defference / 31536000000);
+  }
+}
