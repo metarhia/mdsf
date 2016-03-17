@@ -16,6 +16,10 @@ var obj = {
   arr: [1,2,3,4,undefined,5,undefined],
   sub: { key: 'val' },
   undefinedField: undefined,
+  nullField: null,
+  fn: function(n) {
+    return n * 2;
+  }
 };
 
 var data = ['Marcus Aurelius','AE127095','1990-02-15',26];
@@ -30,13 +34,13 @@ var metadata = {
   sub: 'object'
 };
 
-// stringify usage
+// JSRS usage
 
-console.log(api.util.inspect(obj, { depth: null }));
 console.log(api.jstp.stringify(obj));
 console.log(api.jstp.parse(api.jstp.stringify(obj)));
 
-// get/set usage
+// JSRD usage
 
-api.jstp.jsrd(data, metadata);
-console.log('name: ' + data.get('name'));
+var jsrd = api.jstp.jsrd(data, metadata);
+console.log('name: ' + jsrd.name);
+console.log(api.jstp.stringify(jsrd));
