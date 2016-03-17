@@ -20,8 +20,31 @@ api.jstp.parse = function(jsrs) {
 //   obj - JavaScript object to be serialized
 //   return - JSRS string
 //
-api.jstp.stringify = function(obj) {
-  
+api.jstp.stringify = function(obj, i, arr) {
+  var type;
+  if (obj instanceof Array) type = 'array';
+  else if (obj instanceof Date) type = 'date';
+  else type = typeof(obj);
+  var fn = api.jstp.stringify.types[type];
+  return fn(obj, arr);
+};
+
+api.jstp.stringify.types = {
+  string: function(s) { return '\'' + s + '\''; },
+  number: function(s) { return s + ''; },
+  boolean: function(b) { return b ? 'true' : 'false'; },
+  undefined: function(u, arr) { return !!arr ? '' : 'undefined'; },
+  date: function(d) { return '\'' + d.toISOString().split('T')[0] + '\''; },
+  array: function(a) {
+    return '[' + a.map(api.jstp.stringify).join(',') + ']';
+  },
+  object: function(obj) {
+    var a = [];
+    for (var key in obj) {
+      a.push(key + ':' + api.jstp.stringify(obj[key]));
+    }
+    return '{' + a.join(',') + '}';
+  }
 };
 
 // Convert data into object using metadata
@@ -39,26 +62,6 @@ api.jstp.dataToObject = function(data, metadata) {
 //   return - JSRD object
 //
 api.jstp.objectToData = function(obj, metadata) {
-  
-};
-
-// Get field from data using metadata
-//   data - JSRD object
-//   metadata - JSRM object
-//   fieldName - field name or path separated by `.`
-//   return - value
-//
-api.jstp.objectGet = function(data, metadata, fieldName) {
-
-};
-
-// Set field value using metadata
-//   data - JSRD object
-//   metadata - JSRM object
-//   fieldName - field name or path separated by `.`
-//   value - value to be assigned
-//
-api.jstp.objectSet = function(data, metadata, fieldName, value) {
   
 };
 
