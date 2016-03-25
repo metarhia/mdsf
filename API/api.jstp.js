@@ -2,13 +2,25 @@
 
 api.jstp = {};
 
-// Deserialize string to object
-//   jsrs - JSRS string
+// Deserialize string to object, just data: objects and arrays
+// no expressions and functions allowed in object definition
+//   js - object serialized to string
 //   return - deserialized JavaScript object
 //
-api.jstp.parse = function(jsrs) {
+api.jstp.parse = function(js) {
   var sandbox = api.vm.createContext({});
-  var js = api.vm.createScript('(' + jsrs + ')');
+  var script = api.vm.createScript('(' + js + ')');
+  return script.runInNewContext(sandbox);
+};
+
+// Deserialize string to object with expressions and functions
+// allowed in object definition
+//   js - object serialized to string
+//   return - deserialized JavaScript object
+//
+api.jstp.interprete = function(js) {
+  var sandbox = api.vm.createContext({});
+  var script = api.vm.createScript('(' + js + ')');
   var exported = js.runInNewContext(sandbox);
   for (var key in exported) {
     sandbox[key] = exported[key];
@@ -16,9 +28,12 @@ api.jstp.parse = function(jsrs) {
   return exported;
 };
 
-// Serialize object to string
+// Serialize object to string, just data: objects and arrays
+// no expressions and functions will be serialized
 //   obj - JavaScript object to be serialized
-//   return - JSRS string
+//   i - (optional) array index, for internal use only
+//   arr - (optional) array, for internal use only
+//   return - object serialized to string
 //
 api.jstp.stringify = function(obj, i, arr) {
   var type;
@@ -34,7 +49,6 @@ api.jstp.stringify.types = {
   number: function(n) { return n + ''; },
   string: function(s) { return '\'' + s + '\''; },
   boolean: function(b) { return b ? 'true' : 'false'; },
-  //null: function() { return 'null'; },
   undefined: function(u, arr) { return !!arr ? '' : 'undefined'; },
   function: function() { return 'undefined'; },
   date: function(d) {
@@ -55,25 +69,36 @@ api.jstp.stringify.types = {
   }
 };
 
+// Serialize object to string, data and functions
+// functions will be serialized with source code
+//   obj - JavaScript object to be serialized
+//   i - (optional) array index, for internal use only
+//   arr - (optional) array, for internal use only
+//   return - object serialized to string
+//
+api.jstp.serialize = function(obj, i, arr) {
+
+};
+
 // Convert data into object using metadata
-//   data - deserialized JSRD object
-//   metadata - JSRM object
+//   data - array to be mapped to given metadata by key position
+//   metadata - metadata definition
 //   return - JavaScript object
 //
 api.jstp.dataToObject = function(data, metadata) {
-  
+
 };
 
 // Convert object into data using metadata
-//   obj - JavaScript object
-//   metadata - JSRM object
-//   return - JSRD object
+//   obj - JavaScript object to be mapped to array by key position
+//   metadata - metadata definition
+//   return - JavaScript object
 //
 api.jstp.objectToData = function(obj, metadata) {
-  
+
 };
 
-// Mixin JSRD methods and metadata to data
+// Mixin metada methods and metadata to data
 //   data - data array
 //   metadata - JSRM object
 //   return - JSRD object
@@ -95,7 +120,13 @@ api.jstp.jsrd = function(data, metadata) {
   return obj;
 };
 
-api.jstp.connect = function(host, port) {
+// Establish JSTP connection to server
+//   name - connection name
+//   host - server host
+//   port - server port
+//   return - connection object and add it to api.jstp.connections
+//
+api.jstp.connect = function(name, host, port) {
   var socket = new api.net.Socket();
   var connection = {};
   connection.socket = socket;
@@ -131,7 +162,24 @@ api.jstp.connect = function(host, port) {
     });
   });
 
+  api.jstp.connections[name] = connection;
   return connection;
 };
 
+api.jstp.environment = {};
+api.jstp.connections = {};
+api.jstp.systems = {};
 
+// Start JSTP environment
+//   return - JSTP environment
+//
+api.jstp.start = function() {
+  // Read or generate client unique identifier
+  // Connect to configured servers
+  // Save environment to api.jstp.environment
+  // Return environment
+};
+
+api.jstp.systems.add = function() {
+
+};
