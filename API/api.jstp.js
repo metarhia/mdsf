@@ -4,24 +4,33 @@ api.jstp = {};
 
 // Deserialize string to object, just data: objects and arrays
 // no expressions and functions allowed in object definition
-//   js - object serialized to string
+//   str - object serialized to string
 //   return - deserialized JavaScript object
 //
-api.jstp.parse = function(js) {
+api.jstp.parse = function(str) {
   var sandbox = api.vm.createContext({});
-  var script = api.vm.createScript('(' + js + ')');
+  var script = api.vm.createScript('(' + str + ')');
   return script.runInNewContext(sandbox);
+};
+
+// Deserialize array of scalar or array of array
+// no objects allowed, just arrays and values
+//   str - array serialized to string
+//   return - deserialized JavaScript array
+//
+api.jstp.deserialize = function(str) {
+
 };
 
 // Deserialize string to object with expressions and functions
 // allowed in object definition
-//   js - object serialized to string
+//   str - object serialized to string
 //   return - deserialized JavaScript object
 //
-api.jstp.interprete = function(js) {
+api.jstp.interprete = function(str) {
   var sandbox = api.vm.createContext({});
-  var script = api.vm.createScript('(' + js + ')');
-  var exported = js.runInNewContext(sandbox);
+  var script = api.vm.createScript('(' + str + ')');
+  var exported = str.runInNewContext(sandbox);
   for (var key in exported) {
     sandbox[key] = exported[key];
   }
@@ -100,8 +109,8 @@ api.jstp.objectToData = function(obj, metadata) {
 
 // Mixin metada methods and metadata to data
 //   data - data array
-//   metadata - JSRM object
-//   return - JSRD object
+//   metadata - metadata object
+//   return - fake object with get/set
 //
 api.jstp.jsrd = function(data, metadata) {
   var obj = {},
