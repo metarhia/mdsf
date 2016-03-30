@@ -3,8 +3,8 @@
   passport: '[string(8)]',
   birth: '[Birth]',
   age: function() {
-    var defference = new Date() - birth.date;
-    return Math.floor(defference / 31536000000);
+    var difference = new Date() - birth.date;
+    return Math.floor(difference / 31536000000);
   },
   address: '[Address]'
 }
