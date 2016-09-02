@@ -6,7 +6,7 @@ api.util = require('util');
 require('./api.jstp.js');
 require('./api.test.js');
 
-var obj = {
+let obj = {
   name: 'Marcus Aurelius',
   passport: 'AE127095',
   birth: new Date('1990-02-15'),
@@ -16,14 +16,12 @@ var obj = {
   sub: { key: 'val' },
   undefinedField: undefined,
   nullField: null,
-  fn: function(n) {
-    return n * 2;
-  }
+  fn: n => n * 2
 };
 
-var data = ['Marcus Aurelius','AE127095','1990-02-15',26];
+let data = ['Marcus Aurelius', 'AE127095', '1990-02-15', 26];
 
-var metadata = {
+let metadata = {
   name: 'string',
   passport: 'string(8)',
   birth: 'Date',
@@ -36,36 +34,36 @@ var metadata = {
 console.log(api.jstp.stringify(obj));
 console.log(api.jstp.parse(api.jstp.stringify(obj)));
 
-var jsrd = api.jstp.jsrd(data, metadata);
+let jsrd = api.jstp.jsrd(data, metadata);
 console.log('name: ' + jsrd.name);
 console.log(api.jstp.stringify(jsrd));
 
-data = { a:4, b:5, c:[], d: 'qwerty' };
-data = [1,2,3,4,5,'a'];
-data = ['Marcus Aurelius','AE127095','1990-02-15',26];
+data = { a: 4, b: 5, c:[], d: 'qwerty' };
+data = [1, 2, 3, 4, 5, 'a'];
+data = ['Marcus Aurelius', 'AE127095', '1990-02-15', 26];
 data = [,,,,,,,,,];
 data = obj;
 
 api.test.speed('JSTP', 10000, function() {
-  var s = api.jstp.stringify(data);
+  let s = api.jstp.stringify(data);
 });
 
 api.test.speed('JSON', 10000, function() {
-  var s = JSON.stringify(data);
+  let s = JSON.stringify(data);
 });
 
 api.test.speed('JSTP', 10000, function() {
-  var s = api.jstp.stringify(data);
+  let s = api.jstp.stringify(data);
 });
 
 api.test.speed('JSON', 10000, function() {
-  var s = JSON.stringify(data);
+  let s = JSON.stringify(data);
 });
 
 api.test.speed('JSTP', 10000, function() {
-  var s = api.jstp.stringify(data);
+  let s = api.jstp.stringify(data);
 });
 
 api.test.speed('JSON', 10000, function() {
-  var s = JSON.stringify(data);
+  let s = JSON.stringify(data);
 });

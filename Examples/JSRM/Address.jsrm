@@ -1,4 +1,4 @@
-﻿{
+{
   country: 'string',
   city: 'string',
   zip: 'number(5)',

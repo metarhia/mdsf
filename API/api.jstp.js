@@ -8,8 +8,8 @@ api.jstp = {};
 //   return - deserialized JavaScript object
 //
 api.jstp.parse = function(str) {
-  var sandbox = api.vm.createContext({});
-  var script = api.vm.createScript('(' + str + ')');
+  let sandbox = api.vm.createContext({});
+  let script = api.vm.createScript('(' + str + ')');
   return script.runInNewContext(sandbox);
 };
 
@@ -28,10 +28,10 @@ api.jstp.deserialize = function(str) {
 //   return - deserialized JavaScript object
 //
 api.jstp.interprete = function(str) {
-  var sandbox = api.vm.createContext({});
-  var script = api.vm.createScript('(' + str + ')');
-  var exported = str.runInNewContext(sandbox);
-  for (var key in exported) {
+  let sandbox = api.vm.createContext({});
+  let script = api.vm.createScript('(' + str + ')');
+  let exported = str.runInNewContext(sandbox);
+  for (let key in exported) {
     sandbox[key] = exported[key];
   }
   return exported;
@@ -45,12 +45,12 @@ api.jstp.interprete = function(str) {
 //   return - object serialized to string
 //
 api.jstp.stringify = function(obj, i, arr) {
-  var type;
+  let type;
   if (obj instanceof Array) type = 'array';
   else if (obj instanceof Date) type = 'date';
   else if (obj === null) type = 'undefined';
   else type = typeof(obj);
-  var fn = api.jstp.stringify.types[type];
+  let fn = api.jstp.stringify.types[type];
   return fn(obj, arr);
 };
 
@@ -67,8 +67,8 @@ api.jstp.stringify.types = {
     return '[' + a.map(api.jstp.stringify).join(',') + ']';
   },
   object: function(obj) {
-    var a = [], s;
-    for (var key in obj) {
+    let a = [], s;
+    for (let key in obj) {
       s = api.jstp.stringify(obj[key]);
       if (s !== 'undefined') {
         a.push(key + ':' + s);
@@ -113,7 +113,7 @@ api.jstp.objectToData = function(obj, metadata) {
 //   return - fake object with get/set
 //
 api.jstp.jsrd = function(data, metadata) {
-  var obj = {},
+  let obj = {},
       keys = Object.keys(metadata);
   keys.forEach(function(fieldName, index) {
     Object.defineProperty(obj, fieldName, {
@@ -136,8 +136,8 @@ api.jstp.jsrd = function(data, metadata) {
 //   return - connection object and add it to api.jstp.connections
 //
 api.jstp.connect = function(name, host, port) {
-  var socket = new api.net.Socket();
-  var connection = {};
+  let socket = new api.net.Socket();
+  let connection = {};
   connection.socket = socket;
   connection.packetId = 0;
 
@@ -146,7 +146,7 @@ api.jstp.connect = function(name, host, port) {
   };
 
   connection.call = function(interfaceName, methodName, parameters, callback) {
-    var packet = {};
+    let packet = {};
     connection.packetId++;
     packet.call = [connection.packetId, interfaceName];
     packet[methodName] = parameters;
@@ -154,7 +154,7 @@ api.jstp.connect = function(name, host, port) {
   };
 
   connection.event = function(interfaceName, eventName, parameters) {
-    var packet = {};
+    let packet = {};
     connection.packetId++;
     packet.event = [connection.packetId, interfaceName];
     packet[eventName] = parameters;
@@ -167,7 +167,6 @@ api.jstp.connect = function(name, host, port) {
   }, function() {
     socket.write();
     socket.on('data', function(data) {
-    
     });
   });
 
