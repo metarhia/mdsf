@@ -70,7 +70,7 @@ rules:
       ignoreUrls: true
   max-nested-callbacks:
     - error
-    - max: 3
+    - max: 5
   new-cap:
     - error
     - newIsCap: true
@@ -120,9 +120,6 @@ rules:
     - error
   no-global-assign:
     - error
-  no-magic-numbers:
-    - error
-    - ignoreArrayIndexes: true
   no-self-compare:
     - error
   no-unmodified-loop-condition:
