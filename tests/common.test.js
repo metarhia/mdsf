@@ -47,7 +47,7 @@ describe('Common functions library', function() {
       expect(biggerObject).to.be(biggerObject);
     });
 
-    it('must rewrite older keys by newer ones', function() {
+    it('must rewrite older keys with newer ones', function() {
       var obj = common.extend({ key: 'old', key2: 'old' },
         sampleObject, biggerObject);
       expect(obj).to.only.have.keys('key', 'key1', 'key2');
