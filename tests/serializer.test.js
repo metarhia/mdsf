@@ -122,10 +122,8 @@ var recordSerializationTestCase = recordCommonTestCase.concat([
 
 var recordDeserializationTestCase =
   swapTestCase(recordCommonTestCase).concat([
-    ['must omit functions',
-      '{key:42,fn:function(){}}', { key: 42 }],
     ['must skip whitespace',
-      '{ key:\n\t42 }', { key: 42 }]
+      '{ key:\n\t42 }', { key: 42 }],
   ]);
 
 var baseObjectSerializationTestCase =
@@ -133,6 +131,21 @@ var baseObjectSerializationTestCase =
 
 var baseObjectDeserializationTestCase =
   skipFunctionTests(recordDeserializationTestCase);
+
+function testSyntaxError(parseFunction) {
+  it('must throw error on illegal input', function() {
+    [
+      'asdf',
+      'process',
+      'module',
+      '#+'
+    ].map(function(input) {
+      return jstp[parseFunction].bind(null, input);
+    }).forEach(function(fn) {
+      expect(fn).to.throwError();
+    });
+  });
+}
 
 describe('JSTP Serializer and Deserializer', function() {
   describe('JSTP Record Serialization', function() {
@@ -142,6 +155,19 @@ describe('JSTP Serializer and Deserializer', function() {
 
     describe('jstp.parse', function() {
       runTestCase('parse', recordDeserializationTestCase);
+
+      it('must not allow functions', function() {
+        var test = jstp.parse.bind(null, '{key:42,fn:function(){}}');
+        expect(test).to.throwError(function(error) {
+          expect(error.name).to.be('TypeError');
+        });
+      });
+
+      testSyntaxError('parse');
+
+      it('must skip undefined values of an object', function() {
+        expect(jstp.parse('{value:undefined}')).to.eql({});
+      });
     });
   });
 
@@ -151,6 +177,7 @@ describe('JSTP Serializer and Deserializer', function() {
     });
     describe('jstp.interprete', function() {
       runTestCase('interprete', baseObjectDeserializationTestCase);
+      testSyntaxError('interprete');
     });
   });
 });
