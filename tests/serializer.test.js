@@ -134,8 +134,7 @@ var baseObjectDeserializationTestCase =
 
 function testSyntaxError(parseFunction) {
   it('must throw error on illegal input', function() {
-    [
-      'asdf',
+    [ 'asdf',
       'process',
       'module',
       '#+'
@@ -158,9 +157,19 @@ describe('JSTP Serializer and Deserializer', function() {
 
       it('must not allow functions', function() {
         var test = jstp.parse.bind(null, '{key:42,fn:function(){}}');
-        expect(test).to.throwError(function(error) {
-          expect(error.name).to.be('TypeError');
-        });
+        expectTypeError(test);
+
+        [ '{key:42,fn:function(){}}',
+          '{get value() { return 42; }, set value(val) {}}'
+        ].map(function(input) {
+          return jstp.parse.bind(null, input);
+        }).forEach(expectTypeError);
+
+        function expectTypeError(fn) {
+          expect(fn).to.throwError(function(error) {
+            expect(error.name).to.be('TypeError');
+          });
+        }
       });
 
       testSyntaxError('parse');
