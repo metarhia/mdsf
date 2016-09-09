@@ -1,5 +1,4 @@
-#include <node.h>
-#include <v8.h>
+#include "jsrs.h"
 
 namespace jstp {
 
@@ -15,7 +14,9 @@ void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
   args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, "object"));
 }
 
-}
+}  // namespace jstp
+
+namespace {
 
 void init(v8::Local<v8::Object> target) {
   NODE_SET_METHOD(target, "stringify", jstp::Stringify);
@@ -23,3 +24,5 @@ void init(v8::Local<v8::Object> target) {
 }
 
 NODE_MODULE(jsrs, init);
+
+}  // namespace
