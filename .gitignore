@@ -2,3 +2,4 @@ node_modules
 crlf.js
 *.log
 .DS_Store
+build/
