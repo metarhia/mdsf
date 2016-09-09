@@ -88,7 +88,7 @@ var recordCommonTestCase = [
     ['str', '\'str\''],
     ['first\nsecond', '\'first\\nsecond\''],
     ['it\'s', '\'it\\\'s\''],
-    [Buffer.from([48, 49, 0, 1]).toString(), '\'01\\u0000\\u0001\'']
+    ['01\u0000\u0001', '\'01\\u0000\\u0001\'']
   ]],
   ['must serialize booleans', [
     [true, 'true'],
