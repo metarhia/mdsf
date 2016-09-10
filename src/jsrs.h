@@ -21,6 +21,8 @@ v8::Local<v8::String> StringifyUndefined(v8::Isolate* isolate,
     bool isRootValue);
 v8::Local<v8::String> StringifyDate(v8::Isolate* isolate,
     v8::Local<v8::Date> date);
+v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
+    v8::Local<v8::Array> array);
 
 }  // namespace stringifiers
 
