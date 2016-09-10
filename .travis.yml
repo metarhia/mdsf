@@ -26,10 +26,11 @@ node_js:
   - "6.5"
 env:
   - CXX=g++-6
-apt:
-  sources:
-    - ubuntu-toolchain-r-test
-  packages:
-    - g++-6
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-6
 script:
   - npm test
