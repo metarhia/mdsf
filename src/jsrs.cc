@@ -95,6 +95,18 @@ v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
 
 void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Isolate* isolate = args.GetIsolate();
+
+  if (args.Length() != 1) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+  if (!args[0]->IsString()) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong argument type")));
+    return;
+  }
+
   v8::HandleScope scope(isolate);
   args.GetReturnValue().Set(v8::String::NewFromUtf8(isolate, "object"));
 }
