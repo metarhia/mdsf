@@ -15,3 +15,6 @@ crlf.js
 
 # node-gyp build
 build/
+
+# Python bytecode
+*.pyc
