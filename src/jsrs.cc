@@ -46,6 +46,32 @@ v8::Local<v8::String> StringifyDate(v8::Isolate* isolate,
   return v8::String::NewFromUtf8(isolate, "new Date('TODO')");
 }
 
+v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
+    v8::Local<v8::Array> array) {
+  v8::Local<v8::String> comma =
+    v8::String::NewFromUtf8(isolate, ",");
+
+  v8::Local<v8::String> result =
+    v8::String::NewFromUtf8(isolate, "[");
+
+  uint32_t length = array->Length();
+
+  for (uint32_t index = 0; index < length; index++) {
+    v8::Local<v8::Value> value = array->Get(index);
+    v8::Local<v8::String> chunk = StringifyImpl(isolate, value, false);
+
+    result = v8::String::Concat(result, chunk);
+    if (index != length - 1) {
+      result = v8::String::Concat(result, comma);
+    }
+  }
+
+  result = v8::String::Concat(result,
+      v8::String::NewFromUtf8(isolate, "]"));
+
+  return result;
+}
+
 v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
     v8::Local<v8::Value> value, bool isRootValue) {
   if (value->IsNumber()) {
@@ -58,6 +84,8 @@ v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
     return v8::String::NewFromUtf8(isolate, "null");
   } else if (value->IsDate()) {
     return StringifyDate(isolate, value.As<v8::Date>());
+  } else if (value->IsArray()) {
+    return StringifyArray(isolate, value.As<v8::Array>());
   } else {
     return v8::String::Empty(isolate);
   }
