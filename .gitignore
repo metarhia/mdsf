@@ -1,4 +1,21 @@
+# Node.js and NPM
 node_modules
-crlf.js
 *.log
+
+# Development helpers
+crlf.js
+dev/
+
+# Project files
+.ycm_extra_conf.py
+.color_coded
+.idea/
+
+# OS-specific files
 .DS_Store
+
+# node-gyp build
+build/
+
+# Python bytecode
+*.pyc
