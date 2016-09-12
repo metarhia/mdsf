@@ -13,6 +13,8 @@ void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   }
 
+  v8::HandleScope scope(isolate);
+
   v8::Local<v8::String> result =
     stringifiers::StringifyImpl(isolate, args[0], true);
   args.GetReturnValue().Set(result);
