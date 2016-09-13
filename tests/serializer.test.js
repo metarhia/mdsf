@@ -106,8 +106,6 @@ var recordCommonTestCase = [
   ['must not omit null fields of an object',
     { field1: 'value', field2: null },
     '{field1:\'value\',field2:null}' ],
-  ['must serialize dates',
-    new Date(1473249597286), 'new Date(\'2016-09-07T11:59:57.286Z\')'],
   ['must correctly serialize a complex object',
     marcusObject, marcusString]
 ];
@@ -129,8 +127,16 @@ var recordDeserializationTestCase =
 var baseObjectSerializationTestCase =
   skipFunctionTests(recordSerializationTestCase);
 
+var additionalObjectSerializtionTestCase = [
+  ['must serialize dates',
+    new Date(1473249597286), 'new Date(\'2016-09-07T11:59:57.286Z\')']
+];
+
 var baseObjectDeserializationTestCase =
   skipFunctionTests(recordDeserializationTestCase);
+
+var additionalObjectDeserializtionTestCase =
+  swapTestCase(additionalObjectSerializtionTestCase);
 
 function testSyntaxError(parseFunction) {
   it('must throw error on illegal input', function() {
@@ -150,6 +156,10 @@ describe('JSTP Serializer and Deserializer', function() {
   describe('JSTP Record Serialization', function() {
     describe('jstp.stringify', function() {
       runTestCase('stringify', recordSerializationTestCase);
+      runTestCase('stringify', [
+        ['must serialize dates to strings',
+          new Date(1473249597286), '\'2016-09-07T11:59:57.286Z\'']
+      ]);
     });
 
     describe('jstp.parse', function() {
@@ -176,9 +186,11 @@ describe('JSTP Serializer and Deserializer', function() {
   describe('JSTP Object Serialization', function() {
     describe('jstp.dump', function() {
       runTestCase('dump', baseObjectSerializationTestCase);
+      runTestCase('dump', additionalObjectSerializtionTestCase);
     });
     describe('jstp.interprete', function() {
       runTestCase('interprete', baseObjectDeserializationTestCase);
+      runTestCase('interprete', additionalObjectDeserializtionTestCase);
       testSyntaxError('interprete');
     });
   });
