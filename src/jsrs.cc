@@ -405,7 +405,9 @@ v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const
       bool valid = get_type(begin + i, end, current_type);
       if (valid) {
         t = (parse_func[current_type])(isolate, begin + i, end, current_length);
-        object->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, current_key), t);
+        if (!t->IsUndefined()) {
+          object->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, current_key), t);
+        }
         i += current_length;
         if (begin[i] != ',' && begin[i] != '}') {
           isolate->ThrowException(v8::Exception::SyntaxError(
