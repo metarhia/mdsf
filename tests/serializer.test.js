@@ -120,8 +120,6 @@ var recordCommonTestCase = [
   ['must serialize arrays', [
     [[], '[]'],
     [[1, 2, 3], '[1,2,3]'],
-    // eslint-disable-next-line no-sparse-arrays
-    [[1, , 3], '[1,,3]'],
     [['outer', ['inner']], '[\'outer\',[\'inner\']]']
   ]],
   ['must serialize undefined value', undefined, 'undefined'],
@@ -180,6 +178,9 @@ describe('JSTP Serializer and Deserializer', function() {
     describe('jstp.stringify', function() {
       runTestCase('stringify', recordSerializationTestCase);
       runTestCase('stringify', [
+        ['must serialize sparse arrays',
+          // eslint-disable-next-line no-sparse-arrays
+          [1, , 3], '[1,,3]'],
         ['must serialize dates to strings',
           new Date(1473249597286), '\'2016-09-07T11:59:57.286Z\''],
         ['must correctly serialize a complex object', [
@@ -192,6 +193,8 @@ describe('JSTP Serializer and Deserializer', function() {
     describe('jstp.parse', function() {
       runTestCase('parse', recordDeserializationTestCase);
       runTestCase('parse', [
+        ['must correctly deserialize sparse arrays',
+          '[1,,3]', [1, undefined, 3]],
         ['must correctly deserialize a complex object',
           marcusRecordString, marcusRecord]
       ]);
