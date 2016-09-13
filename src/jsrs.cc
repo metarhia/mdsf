@@ -353,7 +353,7 @@ v8::Local<v8::Value> parse_string(v8::Isolate* isolate, const char *begin, const
     if ((string_mode == kQMarks && begin[i] == '\"') || (string_mode == kApostrophe && begin[i] == '\'') && begin[i - 1] != '\\') {
       is_ended = true;
       size = i + 1;
-      result[i] = '\0';
+      result[j] = '\0';
       break;
     }
     if (begin[i] == '\\') {
@@ -374,7 +374,7 @@ v8::Local<v8::Value> parse_string(v8::Isolate* isolate, const char *begin, const
     v8::String::NewFromUtf8(isolate, "Error while parsing string")));
     return v8::String::Empty(isolate);
   }
-  return v8::String::NewFromUtf8(isolate, result);
+  return v8::String::NewFromUtf8(isolate, result, v8::NewStringType::kNormal, j).ToLocalChecked();
 }
 
 v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
