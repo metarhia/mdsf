@@ -34,7 +34,10 @@ v8::Local<v8::String> StringifyDate(v8::Isolate* isolate,
     v8::String::NewFromUtf8(isolate, "toISOString")).ToLocalChecked();
   v8::Local<v8::Value> result = toISOString.As<v8::Function>()->Call(context,
     date, 0, nullptr).ToLocalChecked();
-  return result->ToString();
+  v8::Local<v8::String> quotes = v8::String::NewFromUtf8(isolate, "\'");
+  v8::Local<v8::String> res_str = result->ToString();
+  res_str = v8::String::Concat(quotes, v8::String::Concat(res_str, quotes));
+  return res_str->ToString();
 }
 
 v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
@@ -117,21 +120,22 @@ v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
 
   v8::Local<v8::Array> keys = object->GetPropertyNames(context)
                                       .ToLocalChecked();
+  v8::Local<v8::String> chunk;
+  bool first_defined = true;
   for (uint32_t i = 0; i < keys->Length(); i++) {
     v8::Local<v8::Value> key = keys->Get(context, i).ToLocalChecked();
     v8::Local<v8::Value> value = object->Get(context, key).ToLocalChecked();
-    v8::Local<v8::String> chunk;
-    if (!value->IsUndefined()) {
-      if (i != 0) {
+    chunk = StringifyImpl(isolate, value);
+    if (!value->IsUndefined() && !chunk.IsEmpty()) {
+      if (i != 0 && first_defined) {
         result = v8::String::Concat(result, comma);
       }
-      chunk = StringifyImpl(isolate, value);
-      if (chunk.IsEmpty()) continue;
+      first_defined = true;
       result = v8::String::Concat(result,
           StringifyKey(isolate, key->ToString()));
       result = v8::String::Concat(result, colon);
       result = v8::String::Concat(result, chunk);
-    }
+    } else if (i == 0) first_defined = false;
   }
   result = v8::String::Concat(result, v8::String::NewFromUtf8(isolate, "}"));
   return result;
@@ -139,6 +143,9 @@ v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
 
 v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
     v8::Local<v8::Value> value) {
+  if (value->IsFunction()) {
+    return v8::Local<v8::String>();
+  }
   if (value->IsNumber()    ||
       value->IsBoolean()   ||
       value->IsUndefined() ||
@@ -153,7 +160,7 @@ v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
   } else if (value->IsObject()) {
     return StringifyObject(isolate, value.As<v8::Object>());
   } else {
-    return v8::String::Empty(isolate);
+    return v8::Local<v8::String>();
   }
 }
 
