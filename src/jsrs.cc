@@ -243,7 +243,8 @@ v8::Local<v8::Value> parse_number(v8::Isolate* isolate, const char *begin, const
 
 char* codePointsToUtf8(unsigned int c, std::size_t& size) {
   setlocale(LC_ALL, "en_US.utf8");
-  char* b = new char[MB_CUR_MAX];
+  char* result = new char[4];
+  char* b = result;
   if (c < 0x80) {
     *b++ = c;
     size = 1;
@@ -252,7 +253,7 @@ char* codePointsToUtf8(unsigned int c, std::size_t& size) {
     *b++ = 128 + c % 64;
     size = 2;
   } else if (c-0xd800u<0x800) {
-    delete []b;
+    delete []result;
     return nullptr;
   } else if (c<0x10000) {
      *b++ = 224 + c / 4096;
@@ -266,10 +267,10 @@ char* codePointsToUtf8(unsigned int c, std::size_t& size) {
      *b++=128+c%64;
      size = 4;
   } else {
-    delete []b;
+    delete []result;
     return nullptr;
   }
-  return b;
+  return result;
 }
 
 unsigned int readHexNumber(const char* str, int len, bool& ok) {
@@ -288,7 +289,7 @@ unsigned int readHexNumber(const char* str, int len, bool& ok) {
 
 char* getControlChar(v8::Isolate* isolate, const char* str, std::size_t& res_len, std::size_t& size) {
   setlocale(LC_ALL, "en_US.utf8");
-  char* result = new char[MB_CUR_MAX];
+  char* result = new char[5];
   size = 1;
   res_len = 1;
   bool ok;
@@ -362,8 +363,8 @@ v8::Local<v8::Value> parse_string(v8::Isolate* isolate, const char *begin, const
       }
       std::strncpy(result + j, symb, out_offset);
       delete []symb;
-      i += in_offset;
-      j += out_offset + 1;
+      i += in_offset - 1;
+      j += out_offset;
     } else {
       result[j++] = begin[i];
     }
@@ -408,7 +409,7 @@ v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const
         i += current_length;
         if (begin[i] != ',' && begin[i] != '}') {
           isolate->ThrowException(v8::Exception::SyntaxError(
-          v8::String::NewFromUtf8(isolate, "Invalid format in object: missed semicolon")));
+          v8::String::NewFromUtf8(isolate, "Invalid format in object: missed comma")));
           return v8::Object::New(isolate);
         } else if (begin[i] == '}') {
           size = i + 1;
@@ -418,8 +419,8 @@ v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const
         current_length = 0;
         key_mode = true;
       } else {
-        isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate, "Invalid format in object")));
+        isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Invalid type in object")));
         return v8::Object::New(isolate);
       }
     }
@@ -433,6 +434,7 @@ v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const 
   std::size_t current_length = 0;
   size = end - begin;
   if (*begin == '[' && *(begin + 1) == ']') { // In case of empty array
+    size = 2;
     return array;
   }
   v8::Local<v8::Value> t;
@@ -443,18 +445,19 @@ v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const 
       t = (parse_func[current_type])(isolate, begin + i, end, current_length);
       array->Set(current_element++, t);
       i += current_length;
+
       current_length = 0;
       if (begin[i] != ',' && begin[i] != ']') {
         isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate, "Invalid format in array: missed semicolon")));
+        v8::String::NewFromUtf8(isolate, "Invalid format in array: missed comma")));
         return v8::Array::New(isolate);
       } else if (begin[i] == ']') {
         size = i + 1;
         break;
       }
     } else {
-      isolate->ThrowException(v8::Exception::SyntaxError(
-      v8::String::NewFromUtf8(isolate, "Invalid format in array")));
+      isolate->ThrowException(v8::Exception::TypeError(
+      v8::String::NewFromUtf8(isolate, "Invalid type in array")));
       return v8::Array::New(isolate);
     }
   }
@@ -467,7 +470,7 @@ v8::Local<v8::Value> parse(v8::Isolate* isolate, v8::String::Utf8Value &in) {
   Type type;
   std::size_t size = strlen(to_parse);
   if (!get_type(to_parse, to_parse + size, type)) {
-    isolate->ThrowException(v8::Exception::SyntaxError(
+    isolate->ThrowException(v8::Exception::TypeError(
         v8::String::NewFromUtf8(isolate, "Invalid type")));
     return v8::Undefined(isolate);
   }
