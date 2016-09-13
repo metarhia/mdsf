@@ -343,6 +343,7 @@ char* getControlChar(v8::Isolate* isolate, const char* str, std::size_t& res_len
 v8::Local<v8::Value> parse_string(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size) {
   size = end - begin;
   char* result = new char[size + 1];
+  std::memset(result, 0, size + 1);
   enum { kApostrophe = 0, kQMarks} string_mode = (*begin == '\'') ? kApostrophe : kQMarks;
   bool is_ended = false;
   std::size_t j = 0;
@@ -350,7 +351,7 @@ v8::Local<v8::Value> parse_string(v8::Isolate* isolate, v8::Local<v8::Context> c
   for (std::size_t i = 1; i < size; ++i) {
     if ((string_mode == kQMarks && begin[i] == '\"') || (string_mode == kApostrophe && begin[i] == '\'') && begin[i - 1] != '\\') {
       is_ended = true;
-      size = i - 1;
+      size = i + 1;
       result[i] = '\0';
       break;
     }
