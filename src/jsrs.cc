@@ -106,12 +106,12 @@ enum Type {
   kUndefined = 0, kNull, kBool, kNumber, kString, kArray, kObject, kDate
 };
 
-const char* prepare_string(const char* str, int length) {
+const char* PrepareString(const char* str, std::size_t length) {
   char* result = new char[length + 1];
   bool string_mode = false;
   enum { kDisabled = 0, kOneline, kMultiline } comment_mode = kDisabled;
   std::size_t j = 0;
-  for (std::size_t i = 0; i < length; ++i) {
+  for (std::size_t i = 0; i < length; i++) {
     if ((str[i] == '\"' || str[i] == '\'') && (i == 0 || str[i - 1] != '\\')) {
       string_mode = !string_mode;
     }
@@ -142,7 +142,7 @@ const char* prepare_string(const char* str, int length) {
   return result;
 }
 
-bool get_type(const char *begin, const char *end, Type &type) {
+bool GetType(const char* begin, const char* end, Type& type) {
   bool result = true;
   switch (*begin) {
     case ',':
@@ -186,20 +186,36 @@ bool get_type(const char *begin, const char *end, Type &type) {
 }
 
 // Parse functions
-v8::Local<v8::Value> parse_undefined(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_null(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_bool(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_number(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_string(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
+v8::Local<v8::Value> ParseUndefined(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t& size);
+v8::Local<v8::Value> ParseNull(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t& size);
+v8::Local<v8::Value> ParseBool(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t& size);
+v8::Local<v8::Value> ParseNumber(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t& size);
+v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t& size);
+v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t& size);
+v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t& size);
 
 const std::size_t kMaxKeyLength = 256;
 
-v8::Local<v8::Value> (*parse_func[])(v8::Isolate*, const char *, const char *, std::size_t &) =
-    {&parse_undefined, &parse_null, &parse_bool, &parse_number, &parse_string, &parse_array, &parse_object};
+v8::Local<v8::Value> (*parse_func[])(v8::Isolate*, const char *,
+                                     const char *, std::size_t &) = {
+      &ParseUndefined,
+      &ParseNull,
+      &ParseBool,
+      &ParseNumber,
+      &ParseString,
+      &ParseArray,
+      &ParseObject
+   };
 
-v8::Local<v8::Value> parse_undefined(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> ParseUndefined(v8::Isolate* isolate, const char* begin,
+                                    const char* end, std::size_t& size) {
   if (*begin == ',' || *begin == ']') {
     size = 0;
   } else if (*begin == 'u') {
@@ -211,12 +227,14 @@ v8::Local<v8::Value> parse_undefined(v8::Isolate* isolate, const char *begin, co
   return v8::Undefined(isolate);
 }
 
-v8::Local<v8::Value> parse_null(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> ParseNull(v8::Isolate* isolate, const char* begin,
+                               const char* end, std::size_t& size) {
   size = 4;
   return v8::Null(isolate);
 }
 
-v8::Local<v8::Value> parse_bool(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> ParseBool(v8::Isolate* isolate, const char* begin,
+                               const char* end, std::size_t& size) {
   v8::Local<v8::Value> result;
   if (begin + 4 <= end && strncmp(begin, "true", 4) == 0) {
     result = v8::True(isolate);
@@ -232,7 +250,8 @@ v8::Local<v8::Value> parse_bool(v8::Isolate* isolate, const char *begin, const c
   return result;
 }
 
-v8::Local<v8::Value> parse_number(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> ParseNumber(v8::Isolate* isolate, const char* begin,
+                                 const char* end, std::size_t& size) {
   v8::Local<v8::Number> result = v8::Number::New(isolate, std::atof(begin));
   size = end - begin;
   std::size_t i = 0;
@@ -241,8 +260,7 @@ v8::Local<v8::Value> parse_number(v8::Isolate* isolate, const char *begin, const
   return result;
 }
 
-char* codePointsToUtf8(unsigned int c, std::size_t& size) {
-  setlocale(LC_ALL, "en_US.utf8");
+char* CodePointsToUtf8(unsigned int c, std::size_t& size) {
   char* result = new char[4];
   char* b = result;
   if (c < 0x80) {
@@ -252,19 +270,19 @@ char* codePointsToUtf8(unsigned int c, std::size_t& size) {
     *b++ = 192 + c / 64;
     *b++ = 128 + c % 64;
     size = 2;
-  } else if (c-0xd800u<0x800) {
+  } else if (c - 0xd800u < 0x800) {
     delete []result;
     return nullptr;
-  } else if (c<0x10000) {
+  } else if (c < 0x10000) {
      *b++ = 224 + c / 4096;
      *b++ = 128 + c / 64 % 64;
      *b++ = 128 + c % 64;
      size = 3;
   } else if (c < 0x110000) {
-     *b++=240+c/262144;
-     *b++=128+c/4096%64;
-     *b++=128+c/64%64;
-     *b++=128+c%64;
+     *b++ = 240 + c / 262144;
+     *b++ = 128 + c / 4096 % 64;
+     *b++ = 128 + c / 64 % 64;
+     *b++ = 128 + c % 64;
      size = 4;
   } else {
     delete []result;
@@ -273,7 +291,7 @@ char* codePointsToUtf8(unsigned int c, std::size_t& size) {
   return result;
 }
 
-unsigned int readHexNumber(const char* str, int len, bool& ok) {
+unsigned int ReadHexNumber(const char* str, int len, bool& ok) {
   char t[5];
   char* end;
   std::strncpy(t, str, len);
@@ -287,8 +305,8 @@ unsigned int readHexNumber(const char* str, int len, bool& ok) {
   return result;
 }
 
-char* getControlChar(v8::Isolate* isolate, const char* str, std::size_t& res_len, std::size_t& size) {
-  setlocale(LC_ALL, "en_US.utf8");
+char* GetControlChar(v8::Isolate* isolate, const char* str,
+                     std::size_t& res_len, std::size_t& size) {
   char* result = new char[5];
   size = 1;
   res_len = 1;
@@ -306,23 +324,24 @@ char* getControlChar(v8::Isolate* isolate, const char* str, std::size_t& res_len
     case '\'': *result = '\''; break;
     case '"': *result = '"'; break;
     case 'x': {
-      *result = readHexNumber(str + 1, 2, ok);
+      *result = ReadHexNumber(str + 1, 2, ok);
       if (!ok) {
         isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate, "Invalid hexadecimal escape sequence")));
+        v8::String::NewFromUtf8(isolate,
+            "Invalid hexadecimal escape sequence")));
         return nullptr;
       }
       size = 3;
       break;
     }
     case 'u': {
-      unsigned int symbCode = readHexNumber(str + 1, 4, ok);
+      unsigned int symb_code = ReadHexNumber(str + 1, 4, ok);
       if (!ok) {
         isolate->ThrowException(v8::Exception::SyntaxError(
         v8::String::NewFromUtf8(isolate, "Invalid Unicode escape sequence")));
         return nullptr;
       }
-      char* unicodeSymbol = codePointsToUtf8(symbCode, res_len);
+      char* unicodeSymbol = CodePointsToUtf8(symb_code, res_len);
       if (!unicodeSymbol) {
         isolate->ThrowException(v8::Exception::SyntaxError(
         v8::String::NewFromUtf8(isolate, "Unknown Unicode symbol")));
@@ -341,32 +360,36 @@ char* getControlChar(v8::Isolate* isolate, const char* str, std::size_t& res_len
   return result;
 }
 
-v8::Local<v8::Value> parse_string(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
+                                 const char* end, std::size_t& size) {
   size = end - begin;
   char* result = new char[size + 1];
   std::memset(result, 0, size + 1);
-  enum { kApostrophe = 0, kQMarks} string_mode = (*begin == '\'') ? kApostrophe : kQMarks;
+  enum { kApostrophe = 0, kQMarks} string_mode =
+       (*begin == '\'') ? kApostrophe : kQMarks;
   bool is_ended = false;
-  std::size_t j = 0;
+  std::size_t res_index = 0;
   std::size_t out_offset, in_offset;
-  for (std::size_t i = 1; i < size; ++i) {
-    if ((string_mode == kQMarks && begin[i] == '\"') || (string_mode == kApostrophe && begin[i] == '\'') && begin[i - 1] != '\\') {
+  for (std::size_t i = 1; i < size; i++) {
+    if (((string_mode == kQMarks && begin[i] == '\"') ||
+         (string_mode == kApostrophe && begin[i] == '\'')) &&
+          begin[i - 1] != '\\') {
       is_ended = true;
       size = i + 1;
-      result[j] = '\0';
+      result[res_index] = '\0';
       break;
     }
     if (begin[i] == '\\') {
-      char* symb = getControlChar(isolate, begin + ++i, out_offset, in_offset);
+      char* symb = GetControlChar(isolate, begin + ++i, out_offset, in_offset);
       if (!symb) {
         return v8::String::Empty(isolate);
       }
-      std::strncpy(result + j, symb, out_offset);
+      std::strncpy(result + res_index, symb, out_offset);
       delete []symb;
       i += in_offset - 1;
-      j += out_offset;
+      res_index += out_offset;
     } else {
-      result[j++] = begin[i];
+      result[res_index++] = begin[i];
     }
   }
   if (!is_ended) {
@@ -374,10 +397,12 @@ v8::Local<v8::Value> parse_string(v8::Isolate* isolate, const char *begin, const
     v8::String::NewFromUtf8(isolate, "Error while parsing string")));
     return v8::String::Empty(isolate);
   }
-  return v8::String::NewFromUtf8(isolate, result, v8::NewStringType::kNormal, j).ToLocalChecked();
+  return v8::String::NewFromUtf8(isolate, result, v8::NewStringType::kNormal,
+                                 res_index).ToLocalChecked();
 }
 
-v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
+                                 const char* end, std::size_t& size) {
   bool key_mode = true;
   size = end - begin;
   char current_key[kMaxKeyLength];
@@ -385,7 +410,7 @@ v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const
   Type current_type;
   v8::Local<v8::Object> object = v8::Object::New(isolate);
   v8::Local<v8::Value> t;
-  for (std::size_t i = 1; i < size; ++i) {
+  for (std::size_t i = 1; i < size; i++) {
     if (key_mode) {
       if (begin[i] == ':') {
         key_mode = false;
@@ -398,20 +423,23 @@ v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const
         return object; // In case of empty object
       } else {
         isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate, "Invalid format in object: key is invalid")));
+        v8::String::NewFromUtf8(isolate,
+            "Invalid format in object: key is invalid")));
         return v8::Object::New(isolate);
       }
     } else {
-      bool valid = get_type(begin + i, end, current_type);
+      bool valid = GetType(begin + i, end, current_type);
       if (valid) {
         t = (parse_func[current_type])(isolate, begin + i, end, current_length);
         if (!t->IsUndefined()) {
-          object->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, current_key), t);
+          object->Set(isolate->GetCurrentContext(),
+                      v8::String::NewFromUtf8(isolate, current_key), t);
         }
         i += current_length;
         if (begin[i] != ',' && begin[i] != '}') {
           isolate->ThrowException(v8::Exception::SyntaxError(
-          v8::String::NewFromUtf8(isolate, "Invalid format in object: missed comma")));
+          v8::String::NewFromUtf8(isolate,
+              "Invalid format in object: missed comma")));
           return v8::Object::New(isolate);
         } else if (begin[i] == '}') {
           size = i + 1;
@@ -430,7 +458,8 @@ v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const
   return object;
 }
 
-v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
+                                const char* end, std::size_t& size) {
   Type current_type;
   v8::Local<v8::Array> array = v8::Array::New(isolate);
   std::size_t current_length = 0;
@@ -441,8 +470,8 @@ v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const 
   }
   v8::Local<v8::Value> t;
   std::size_t current_element = 0;
-  for (std::size_t i = 1; i < size; ++i) {
-    bool valid = get_type(begin + i, end, current_type);
+  for (std::size_t i = 1; i < size; i++) {
+    bool valid = GetType(begin + i, end, current_type);
     if (valid) {
       t = (parse_func[current_type])(isolate, begin + i, end, current_length);
       array->Set(current_element++, t);
@@ -451,7 +480,8 @@ v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const 
       current_length = 0;
       if (begin[i] != ',' && begin[i] != ']') {
         isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate, "Invalid format in array: missed comma")));
+            v8::String::NewFromUtf8(isolate,
+                "Invalid format in array: missed comma")));
         return v8::Array::New(isolate);
       } else if (begin[i] == ']') {
         size = i + 1;
@@ -459,7 +489,7 @@ v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const 
       }
     } else {
       isolate->ThrowException(v8::Exception::TypeError(
-      v8::String::NewFromUtf8(isolate, "Invalid type in array")));
+          v8::String::NewFromUtf8(isolate, "Invalid type in array")));
       return v8::Array::New(isolate);
     }
   }
@@ -467,16 +497,17 @@ v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const 
   return array;
 }
 
-v8::Local<v8::Value> parse(v8::Isolate* isolate, v8::String::Utf8Value &in) {
-  const char *to_parse = prepare_string(*in, in.length());
+v8::Local<v8::Value> Parse(v8::Isolate* isolate, v8::String::Utf8Value& in) {
+  const char* to_parse = PrepareString(*in, in.length());
   Type type;
   std::size_t size = strlen(to_parse);
-  if (!get_type(to_parse, to_parse + size, type)) {
+  if (!GetType(to_parse, to_parse + size, type)) {
     isolate->ThrowException(v8::Exception::TypeError(
         v8::String::NewFromUtf8(isolate, "Invalid type")));
     return v8::Undefined(isolate);
   }
-  v8::Local<v8::Value> result = (parse_func[type])(isolate, to_parse, to_parse + size, size);
+  v8::Local<v8::Value> result = (parse_func[type])(isolate, to_parse,
+                                                   to_parse + size, size);
   if (size != strlen(to_parse)) {
     isolate->ThrowException(v8::Exception::SyntaxError(
         v8::String::NewFromUtf8(isolate, "Invalid format")));
@@ -506,7 +537,7 @@ void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
   v8::String::Utf8Value str(args[0]->ToString());
 
-  v8::Local<v8::Value> result = parsing::parse(isolate, str);
+  v8::Local<v8::Value> result = parsing::Parse(isolate, str);
   args.GetReturnValue().Set(result);
 }
 
