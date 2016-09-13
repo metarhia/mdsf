@@ -186,20 +186,20 @@ bool get_type(const char *begin, const char *end, Type &type) {
 }
 
 // Parse functions
-v8::Local<v8::Value> parse_undefined(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_null(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_bool(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_number(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_string(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_array(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size);
-v8::Local<v8::Value> parse_object(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size);
+v8::Local<v8::Value> parse_undefined(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
+v8::Local<v8::Value> parse_null(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
+v8::Local<v8::Value> parse_bool(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
+v8::Local<v8::Value> parse_number(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
+v8::Local<v8::Value> parse_string(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
+v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
+v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size);
 
 const std::size_t kMaxKeyLength = 256;
 
-v8::Local<v8::Value> (*parse_func[])(v8::Isolate*, v8::Local<v8::Context>, const char *, const char *, std::size_t &) =
+v8::Local<v8::Value> (*parse_func[])(v8::Isolate*, const char *, const char *, std::size_t &) =
     {&parse_undefined, &parse_null, &parse_bool, &parse_number, &parse_string, &parse_array, &parse_object};
 
-v8::Local<v8::Value> parse_undefined(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> parse_undefined(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
   if (*begin == ',' || *begin == ']') {
     size = 0;
   } else if (*begin == 'u') {
@@ -211,12 +211,12 @@ v8::Local<v8::Value> parse_undefined(v8::Isolate* isolate, v8::Local<v8::Context
   return v8::Undefined(isolate);
 }
 
-v8::Local<v8::Value> parse_null(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> parse_null(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
   size = 4;
   return v8::Null(isolate);
 }
 
-v8::Local<v8::Value> parse_bool(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> parse_bool(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
   v8::Local<v8::Value> result;
   if (begin + 4 <= end && strncmp(begin, "true", 4) == 0) {
     result = v8::True(isolate);
@@ -232,7 +232,7 @@ v8::Local<v8::Value> parse_bool(v8::Isolate* isolate, v8::Local<v8::Context> con
   return result;
 }
 
-v8::Local<v8::Value> parse_number(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> parse_number(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
   v8::Local<v8::Number> result = v8::Number::New(isolate, std::atof(begin));
   size = end - begin;
   std::size_t i = 0;
@@ -340,7 +340,7 @@ char* getControlChar(v8::Isolate* isolate, const char* str, std::size_t& res_len
   return result;
 }
 
-v8::Local<v8::Value> parse_string(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> parse_string(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
   size = end - begin;
   char* result = new char[size + 1];
   std::memset(result, 0, size + 1);
@@ -376,7 +376,7 @@ v8::Local<v8::Value> parse_string(v8::Isolate* isolate, v8::Local<v8::Context> c
   return v8::String::NewFromUtf8(isolate, result);
 }
 
-v8::Local<v8::Value> parse_object(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> parse_object(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
   bool key_mode = true;
   size = end - begin;
   char current_key[kMaxKeyLength];
@@ -403,8 +403,8 @@ v8::Local<v8::Value> parse_object(v8::Isolate* isolate, v8::Local<v8::Context> c
     } else {
       bool valid = get_type(begin + i, end, current_type);
       if (valid) {
-        t = (parse_func[current_type])(isolate, context, begin + i, end, current_length);
-        object->Set(context, v8::String::NewFromUtf8(isolate, current_key), t);
+        t = (parse_func[current_type])(isolate, begin + i, end, current_length);
+        object->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, current_key), t);
         i += current_length;
         if (begin[i] != ',' && begin[i] != '}') {
           isolate->ThrowException(v8::Exception::SyntaxError(
@@ -427,7 +427,7 @@ v8::Local<v8::Value> parse_object(v8::Isolate* isolate, v8::Local<v8::Context> c
   return object;
 }
 
-v8::Local<v8::Value> parse_array(v8::Isolate* isolate, v8::Local<v8::Context> context, const char *begin, const char *end, std::size_t &size) {
+v8::Local<v8::Value> parse_array(v8::Isolate* isolate, const char *begin, const char *end, std::size_t &size) {
   Type current_type;
   v8::Local<v8::Array> array = v8::Array::New(isolate);
   std::size_t current_length = 0;
@@ -440,7 +440,7 @@ v8::Local<v8::Value> parse_array(v8::Isolate* isolate, v8::Local<v8::Context> co
   for (std::size_t i = 1; i < size; ++i) {
     bool valid = get_type(begin + i, end, current_type);
     if (valid) {
-      t = (parse_func[current_type])(isolate, context, begin + i, end, current_length);
+      t = (parse_func[current_type])(isolate, begin + i, end, current_length);
       array->Set(current_element++, t);
       i += current_length;
       current_length = 0;
@@ -463,8 +463,6 @@ v8::Local<v8::Value> parse_array(v8::Isolate* isolate, v8::Local<v8::Context> co
 }
 
 v8::Local<v8::Value> parse(v8::Isolate* isolate, v8::String::Utf8Value &in) {
-  v8::Local<v8::Context> context = v8::Context::New(isolate);
-  v8::Context::Scope context_scope(context);
   const char *to_parse = prepare_string(*in, in.length());
   Type type;
   std::size_t size = strlen(to_parse);
@@ -473,7 +471,7 @@ v8::Local<v8::Value> parse(v8::Isolate* isolate, v8::String::Utf8Value &in) {
         v8::String::NewFromUtf8(isolate, "Invalid type")));
     return v8::Undefined(isolate);
   }
-  v8::Local<v8::Value> result = (parse_func[type])(isolate, context, to_parse, to_parse + size, size);
+  v8::Local<v8::Value> result = (parse_func[type])(isolate, to_parse, to_parse + size, size);
   if (size != strlen(to_parse)) {
     isolate->ThrowException(v8::Exception::SyntaxError(
         v8::String::NewFromUtf8(isolate, "Invalid format")));
@@ -498,6 +496,8 @@ void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
         v8::String::NewFromUtf8(isolate, "Wrong argument type")));
     return;
   }
+
+  v8::HandleScope scope(isolate);
 
   v8::String::Utf8Value str(args[0]->ToString());
 
