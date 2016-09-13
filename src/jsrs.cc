@@ -21,36 +21,20 @@ void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::HandleScope scope(isolate);
 
   v8::Local<v8::String> result =
-    stringifiers::StringifyImpl(isolate, args[0], true);
+    stringifiers::StringifyImpl(isolate, args[0]);
   args.GetReturnValue().Set(result);
 }
 
 namespace stringifiers {
 
-v8::Local<v8::String> StringifyNumber(v8::Isolate* isolate,
-    v8::Local<v8::Number> number) {
-  double value = number->Value();
-  char buffer[256] = { 0 };
-  std::sprintf(buffer, "%g", value);
-  return v8::String::NewFromUtf8(isolate, buffer);
-}
-
-v8::Local<v8::String> StringifyBoolean(v8::Isolate* isolate,
-    v8::Local<v8::Boolean> boolean) {
-  bool value = boolean->Value();
-  const char* string = value ? "true" : "false";
-  return v8::String::NewFromUtf8(isolate, string);
-}
-
-v8::Local<v8::String> StringifyUndefined(v8::Isolate* isolate,
-    bool isRootValue) {
-  const char* string = isRootValue ? "undefined" : "";
-  return v8::String::NewFromUtf8(isolate, string);
-}
-
 v8::Local<v8::String> StringifyDate(v8::Isolate* isolate,
     v8::Local<v8::Date> date) {
-  return v8::String::NewFromUtf8(isolate, "new Date('TODO')");
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::Value> toISOString = date->Get(context,
+    v8::String::NewFromUtf8(isolate, "toISOString")).ToLocalChecked();
+  v8::Local<v8::Value> result = toISOString.As<v8::Function>()->Call(context,
+    date, 0, nullptr).ToLocalChecked();
+  return result->ToString();
 }
 
 v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
@@ -65,9 +49,11 @@ v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
 
   for (uint32_t index = 0; index < length; index++) {
     v8::Local<v8::Value> value = array->Get(index);
-    v8::Local<v8::String> chunk = StringifyImpl(isolate, value, false);
-
-    result = v8::String::Concat(result, chunk);
+    if (!value->IsUndefined()) {
+      v8::Local<v8::String> chunk = StringifyImpl(isolate, value);
+      if (chunk.IsEmpty()) continue;
+      result = v8::String::Concat(result, chunk);
+    }
     if (index != length - 1) {
       result = v8::String::Concat(result, comma);
     }
@@ -79,20 +65,93 @@ v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
   return result;
 }
 
+bool IsValidKey(v8::Isolate* isolate, v8::String::Utf8Value& key) {
+  bool result = true;
+  const char* key_str = *key;
+  for (int i = 0; i < key.length(); i++) {
+    if (key_str[i] == '_') continue;
+    if ((i == 0 && !isalpha(key_str[i])) || !isalnum(key_str[i])) {
+      result = false;
+      break;
+    }
+  }
+  return result;
+}
+
+v8::Local<v8::String> StringifyKey(v8::Isolate* isolate,
+    v8::Local<v8::String> key) {
+  v8::String::Utf8Value key_str(key.As<v8::Value>());
+  if (!IsValidKey(isolate, key_str)) {
+    return StringifyString(isolate, key);
+  }
+  return key;
+}
+
+v8::Local<v8::String> StringifyString(v8::Isolate* isolate,
+    v8::Local<v8::String> string) {
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::Object> global = context->Global();
+
+  v8::Local<v8::Object> json = global->Get(context,
+      v8::String::NewFromUtf8(isolate,"JSON"))
+      .ToLocalChecked().As<v8::Object>();
+
+  v8::Local<v8::Value> stringify = json->Get(context,
+      v8::String::NewFromUtf8(isolate, "stringify")).ToLocalChecked();
+
+  v8::Local<v8::Value> args[] = { string };
+  v8::Local<v8::Value> result = stringify.As<v8::Function>()->Call(context,
+      json, 1, args).ToLocalChecked();
+
+  return result->ToString();
+}
+
+v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
+    v8::Local<v8::Object> object) {
+  v8::Local<v8::String> comma = v8::String::NewFromUtf8(isolate, ",");
+  v8::Local<v8::String> colon = v8::String::NewFromUtf8(isolate, ":");
+
+  v8::Local<v8::String> result = v8::String::NewFromUtf8(isolate, "{");
+
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+  v8::Local<v8::Array> keys = object->GetPropertyNames(context)
+                                      .ToLocalChecked();
+  for (uint32_t i = 0; i < keys->Length(); i++) {
+    v8::Local<v8::Value> key = keys->Get(context, i).ToLocalChecked();
+    v8::Local<v8::Value> value = object->Get(context, key).ToLocalChecked();
+    v8::Local<v8::String> chunk;
+    if (!value->IsUndefined()) {
+      if (i != 0) {
+        result = v8::String::Concat(result, comma);
+      }
+      chunk = StringifyImpl(isolate, value);
+      if (chunk.IsEmpty()) continue;
+      result = v8::String::Concat(result,
+          StringifyKey(isolate, key->ToString()));
+      result = v8::String::Concat(result, colon);
+      result = v8::String::Concat(result, chunk);
+    }
+  }
+  result = v8::String::Concat(result, v8::String::NewFromUtf8(isolate, "}"));
+  return result;
+}
+
 v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
-    v8::Local<v8::Value> value, bool isRootValue) {
-  if (value->IsNumber()) {
-    return StringifyNumber(isolate, value->ToNumber(isolate));
-  } else if (value->IsBoolean()) {
-    return StringifyBoolean(isolate, value->ToBoolean(isolate));
-  } else if (value->IsUndefined()) {
-    return StringifyUndefined(isolate, isRootValue);
-  } else if (value->IsNull()) {
-    return v8::String::NewFromUtf8(isolate, "null");
+    v8::Local<v8::Value> value) {
+  if (value->IsNumber()    ||
+      value->IsBoolean()   ||
+      value->IsUndefined() ||
+      value->IsNull()) {
+    return value->ToString(isolate->GetCurrentContext()).ToLocalChecked();
   } else if (value->IsDate()) {
     return StringifyDate(isolate, value.As<v8::Date>());
+  } else if (value->IsString()) {
+    return StringifyString(isolate, value.As<v8::String>());
   } else if (value->IsArray()) {
     return StringifyArray(isolate, value.As<v8::Array>());
+  } else if (value->IsObject()) {
+    return StringifyObject(isolate, value.As<v8::Object>());
   } else {
     return v8::String::Empty(isolate);
   }
