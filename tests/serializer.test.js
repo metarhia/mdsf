@@ -56,6 +56,24 @@ function skipFunctionTests(testCase) {
   });
 }
 
+var marcusRecord = {
+  name: 'Marcus Aurelius',
+  passport: 'AE127095',
+  birth: {
+    date: '1990-02-15T00:00:00.000Z',
+    place: 'Rome'
+  },
+  address: {
+    country: 'Ukraine',
+    city: 'Kiev',
+    zip: '03056',
+    street: 'Pobedy',
+    building: '37',
+    floor: '1',
+    room: '158'
+  }
+};
+
 var marcusObject = {
   name: 'Marcus Aurelius',
   passport: 'AE127095',
@@ -74,7 +92,12 @@ var marcusObject = {
   }
 };
 
-var marcusString = '{name:\'Marcus Aurelius\',passport:\'AE127095\',' +
+var marcusRecordString = '{name:\'Marcus Aurelius\',passport:\'AE127095\',' +
+  'birth:{date:\'1990-02-15T00:00:00.000Z\',place:\'Rome\'},' +
+  'address:{country:\'Ukraine\',city:\'Kiev\',zip:\'03056\',' +
+  'street:\'Pobedy\',building:\'37\',floor:\'1\',room:\'158\'}}';
+
+var marcusObjectString = '{name:\'Marcus Aurelius\',passport:\'AE127095\',' +
   'birth:{date:new Date(\'1990-02-15T00:00:00.000Z\'),place:\'Rome\'},' +
   'address:{country:\'Ukraine\',city:\'Kiev\',zip:\'03056\',' +
   'street:\'Pobedy\',building:\'37\',floor:\'1\',room:\'158\'}}';
@@ -105,9 +128,7 @@ var recordCommonTestCase = [
   ['must serialize null value', null, 'null'],
   ['must not omit null fields of an object',
     { field1: 'value', field2: null },
-    '{field1:\'value\',field2:null}' ],
-  ['must correctly serialize a complex object',
-    marcusObject, marcusString]
+    '{field1:\'value\',field2:null}' ]
 ];
 
 var recordSerializationTestCase = recordCommonTestCase.concat([
@@ -121,7 +142,7 @@ var recordSerializationTestCase = recordCommonTestCase.concat([
 var recordDeserializationTestCase =
   swapTestCase(recordCommonTestCase).concat([
     ['must skip whitespace',
-      '{ key:\n\t42 }', { key: 42 }],
+      '{ key:\n\t42 }', { key: 42 }]
   ]);
 
 var baseObjectSerializationTestCase =
@@ -129,7 +150,9 @@ var baseObjectSerializationTestCase =
 
 var additionalObjectSerializtionTestCase = [
   ['must serialize dates',
-    new Date(1473249597286), 'new Date(\'2016-09-07T11:59:57.286Z\')']
+    new Date(1473249597286), 'new Date(\'2016-09-07T11:59:57.286Z\')'],
+  ['must correctly serialize a complex object',
+    marcusObject, marcusObjectString]
 ];
 
 var baseObjectDeserializationTestCase =
@@ -158,12 +181,20 @@ describe('JSTP Serializer and Deserializer', function() {
       runTestCase('stringify', recordSerializationTestCase);
       runTestCase('stringify', [
         ['must serialize dates to strings',
-          new Date(1473249597286), '\'2016-09-07T11:59:57.286Z\'']
+          new Date(1473249597286), '\'2016-09-07T11:59:57.286Z\''],
+        ['must correctly serialize a complex object', [
+          [marcusRecord, marcusRecordString],
+          [marcusObject, marcusRecordString]
+        ]]
       ]);
     });
 
     describe('jstp.parse', function() {
       runTestCase('parse', recordDeserializationTestCase);
+      runTestCase('parse', [
+        ['must correctly deserialize a complex object',
+          marcusRecordString, marcusRecord]
+      ]);
 
       it('must not allow functions', function() {
         [ '{key:42,fn:function(){}}',
