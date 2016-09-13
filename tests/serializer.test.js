@@ -156,20 +156,13 @@ describe('JSTP Serializer and Deserializer', function() {
       runTestCase('parse', recordDeserializationTestCase);
 
       it('must not allow functions', function() {
-        var test = jstp.parse.bind(null, '{key:42,fn:function(){}}');
-        expectTypeError(test);
-
         [ '{key:42,fn:function(){}}',
           '{get value() { return 42; }, set value(val) {}}'
         ].map(function(input) {
           return jstp.parse.bind(null, input);
-        }).forEach(expectTypeError);
-
-        function expectTypeError(fn) {
-          expect(fn).to.throwError(function(error) {
-            expect(error.name).to.be('TypeError');
-          });
-        }
+        }).forEach(function(fn) {
+          expect(fn).to.throwError();
+        });
       });
 
       testSyntaxError('parse');
