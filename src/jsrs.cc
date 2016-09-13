@@ -205,14 +205,14 @@ const std::size_t kMaxKeyLength = 256;
 
 v8::Local<v8::Value> (*parse_func[])(v8::Isolate*, const char *,
                                      const char *, std::size_t &) = {
-      &ParseUndefined,
-      &ParseNull,
-      &ParseBool,
-      &ParseNumber,
-      &ParseString,
-      &ParseArray,
-      &ParseObject
-   };
+  &ParseUndefined,
+  &ParseNull,
+  &ParseBool,
+  &ParseNumber,
+  &ParseString,
+  &ParseArray,
+  &ParseObject
+};
 
 v8::Local<v8::Value> ParseUndefined(v8::Isolate* isolate, const char* begin,
                                     const char* end, std::size_t& size) {
