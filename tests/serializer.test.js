@@ -137,13 +137,19 @@ var recordSerializationTestCase = recordCommonTestCase.concat([
     { field1: 'value', field2: undefined },
     '{field1:\'value\'}' ],
   ['must omit functions',
-    { key: 42, fn: function() {} }, '{key:42}']
+    { key: 42, fn: function() {} }, '{key:42}'],
+  ['must serialize non-identifier keys',
+    { '*': 42 }, '{\'*\':42}']
 ]);
 
 var recordDeserializationTestCase =
   swapTestCase(recordCommonTestCase).concat([
     ['must skip whitespace',
-      '{ key:\n\t42 }', { key: 42 }]
+      '{ key:\n\t42 }', { key: 42 }],
+    ['must parse single-quoted keys',
+      '{\'key\': 42}', { key: 42 }],
+    ['must parse double-quoted keys',
+      '{"key": 42}', { key: 42 }]
   ]);
 
 var baseObjectSerializationTestCase =
@@ -159,7 +165,7 @@ var additionalObjectSerializtionTestCase = [
 var baseObjectDeserializationTestCase =
   skipFunctionTests(recordDeserializationTestCase);
 
-var additionalObjectDeserializtionTestCase =
+var additionalObjectDeserializationTestCase =
   swapTestCase(additionalObjectSerializtionTestCase);
 
 function testSyntaxError(parseFunction) {
@@ -224,7 +230,7 @@ describe('JSTP Serializer and Deserializer', function() {
     });
     describe('jstp.interprete', function() {
       runTestCase('interprete', baseObjectDeserializationTestCase);
-      runTestCase('interprete', additionalObjectDeserializtionTestCase);
+      runTestCase('interprete', additionalObjectDeserializationTestCase);
       runTestCase('interprete', [
         ['must deserialize sparse arrays to sparse arrays',
           // eslint-disable-next-line no-sparse-arrays
