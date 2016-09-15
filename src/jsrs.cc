@@ -1,3 +1,51 @@
+/*
+ * JSTP Record Serialization
+ *
+ * Copyright (c) 2016 Mykola Bilochub, Alexey Orlenko
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * This code is based upon the C++ implementation of JSTP parser and
+ * serializer originating from `https://github.com/NechaiDO/JSTP-cpp`.
+ * Original license:
+ *
+ * Copyright (c) 2016 Dmytro Nechai, Nikolai Belochub
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
 #include "jsrs.h"
 
 #include <cctype>
@@ -95,7 +143,7 @@ v8::Local<v8::String> StringifyString(v8::Isolate* isolate,
   v8::Local<v8::Object> global = context->Global();
 
   v8::Local<v8::Object> json = global->Get(context,
-      v8::String::NewFromUtf8(isolate,"JSON"))
+      v8::String::NewFromUtf8(isolate, "JSON"))
       .ToLocalChecked().As<v8::Object>();
 
   v8::Local<v8::Value> stringify = json->Get(context,
@@ -134,7 +182,9 @@ v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
           StringifyKey(isolate, key->ToString()));
       result = v8::String::Concat(result, colon);
       result = v8::String::Concat(result, chunk);
-    } else if (i == 0) first_defined = false;
+    } else {
+      if (i == 0) first_defined = false;
+    }
   }
   result = v8::String::Concat(result, v8::String::NewFromUtf8(isolate, "}"));
   return result;
@@ -201,7 +251,6 @@ const char* PrepareString(const char* str, std::size_t length) {
     } else {
       result[j++] = str[i];
     }
-
   }
   result[j] = '\0';
   return result;
@@ -485,7 +534,7 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
       } else if (isalnum(begin[i]) || begin[i] == '_') {
         current_length++;
       } else if (begin[i] == '}') {
-        return object; // In case of empty object
+        return object;  // In case of empty object
       } else {
         isolate->ThrowException(v8::Exception::SyntaxError(
         v8::String::NewFromUtf8(isolate,
@@ -529,7 +578,7 @@ v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
   v8::Local<v8::Array> array = v8::Array::New(isolate);
   std::size_t current_length = 0;
   size = end - begin;
-  if (*begin == '[' && *(begin + 1) == ']') { // In case of empty array
+  if (*begin == '[' && *(begin + 1) == ']') {  // In case of empty array
     size = 2;
     return array;
   }
@@ -582,7 +631,7 @@ v8::Local<v8::Value> Parse(v8::Isolate* isolate, v8::String::Utf8Value& in) {
   return result;
 }
 
-}
+}  // namespace parsing
 
 void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Isolate* isolate = args.GetIsolate();
