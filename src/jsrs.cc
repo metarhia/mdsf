@@ -1,6 +1,5 @@
 #include "jsrs.h"
 
-#include <cstdio>
 #include <cctype>
 #include <clocale>
 #include <cstring>
