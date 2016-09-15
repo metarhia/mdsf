@@ -537,8 +537,8 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
         return object;  // In case of empty object
       } else {
         isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate,
-            "Invalid format in object: key is invalid")));
+            v8::String::NewFromUtf8(isolate,
+                "Invalid format in object: key is invalid")));
         return v8::Object::New(isolate);
       }
     } else {
@@ -546,8 +546,13 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
       if (valid) {
         t = (parse_func[current_type])(isolate, begin + i, end, current_length);
         if (!t->IsUndefined()) {
-          object->Set(isolate->GetCurrentContext(),
+          v8::Maybe<bool> result = object->Set(isolate->GetCurrentContext(),
                       v8::String::NewFromUtf8(isolate, current_key), t);
+          if (result.IsNothing()) {
+            isolate->ThrowException(
+                v8::Exception::Error(v8::String::NewFromUtf8(isolate,
+                    "Cannot add property to object")));
+          }
         }
         i += current_length;
         if (begin[i] != ',' && begin[i] != '}') {
@@ -564,7 +569,7 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
         key_mode = true;
       } else {
         isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8(isolate, "Invalid type in object")));
+            v8::String::NewFromUtf8(isolate, "Invalid type in object")));
         return v8::Object::New(isolate);
       }
     }
