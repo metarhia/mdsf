@@ -546,6 +546,7 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
   bool key_mode = true;
   *size = end - begin;
   char current_key[kMaxKeyLength];
+  v8::Local<v8::String> current_key_string = v8::Local<v8::String>();
   std::size_t current_length = 0;
   Type current_type;
   v8::Local<v8::Object> object = v8::Object::New(isolate);
@@ -559,12 +560,25 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
         current_length = 0;
       } else if (isalnum(begin[i]) || begin[i] == '_') {
         current_length++;
+      } else if ((begin[i] == '\'' || begin[i] == '"') && begin[i-1] != '\\') {
+        bool valid = GetType(begin + i, end, &current_type);
+        if (valid && current_type == Type::kString) {
+          std::size_t offset;
+          current_key_string = ParseString(isolate, begin + i, end,
+                                           &offset).As<v8::String>();
+          i += offset - 1;
+        } else {
+          isolate->ThrowException(v8::Exception::SyntaxError(
+              v8::String::NewFromUtf8(isolate,
+                  "Invalid format in object: key is invalid string")));
+          return v8::Object::New(isolate);
+        }
       } else if (begin[i] == '}') {
         return object;  // In case of empty object
       } else {
         isolate->ThrowException(v8::Exception::SyntaxError(
             v8::String::NewFromUtf8(isolate,
-                "Invalid format in object: key is invalid")));
+                "Invalid format in object: key has invalid type")));
         return v8::Object::New(isolate);
       }
     } else {
@@ -573,12 +587,24 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
         t = (parse_func[current_type])(isolate, begin + i, end,
                                        &current_length);
         if (!t->IsUndefined()) {
-          v8::Maybe<bool> result = object->Set(isolate->GetCurrentContext(),
-              v8::String::NewFromUtf8(isolate, current_key), t);
-          if (result.IsNothing()) {
-            isolate->ThrowException(
-                v8::Exception::Error(v8::String::NewFromUtf8(isolate,
-                    "Cannot add property to object")));
+
+          auto check_result = [&](v8::Maybe<bool> value) {
+            if (value.IsNothing()) {
+              isolate->ThrowException(
+                  v8::Exception::Error(v8::String::NewFromUtf8(isolate,
+                      "Cannot add property to object")));
+            }
+          };
+
+          if (!current_key_string.IsEmpty()) {
+            v8::Maybe<bool> result = object->Set(isolate->GetCurrentContext(),
+                current_key_string, t);
+            check_result(result);
+            current_key_string.Clear();
+          } else {
+            v8::Maybe<bool> result = object->Set(isolate->GetCurrentContext(),
+                v8::String::NewFromUtf8(isolate, current_key), t);
+            check_result(result);
           }
         }
         i += current_length;
