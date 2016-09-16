@@ -3,7 +3,7 @@
     {
       'target_name': 'jsrs',
       'cflags': ['-O3'],
-      'sources': ['src/jsrs.cc']
+      'sources': ['src/jsrs-impl.cc']
     }
   ]
 }
