@@ -53,6 +53,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
+#include <vector>
 
 namespace jstp {
 
@@ -137,45 +138,67 @@ v8::Local<v8::String> StringifyKey(v8::Isolate* isolate,
   return key;
 }
 
+const char* GetEscapedControlChar(v8::Isolate* isolate, char str,
+    std::size_t* size) {
+  *size = 2;
+  const char* control_chars[0x20] = {
+    "\\u0000", "\\u0001", "\\u0002",
+    "\\u0003", "\\u0004", "\\u0005",
+    "\\u0006", "\\u0007", "\\u0008",
+    "\\u0009", "\\u000a", "\\u000b",
+    "\\u000c", "\\u000d", "\\u000e",
+    "\\u000f", "\\u0010", "\\u0011",
+    "\\u0012", "\\u0013", "\\u0014",
+    "\\u0015", "\\u0016", "\\u0017",
+    "\\u0018", "\\u0019", "\\u001a",
+    "\\u001b", "\\u001c", "\\u001d",
+    "\\u001e", "\\u001f"
+  };
+  switch (str) {
+    case '\a': return "\\a";
+    case '\b': return "\\b";
+    case '\f': return "\\f";
+    case '\n': return "\\n";
+    case '\r': return "\\r";
+    case '\t': return "\\t";
+    case '\v': return "\\v";
+    case '\\': return "\\\\";
+    case '\'': return "\\'";
+    case 0x7F: return "\\u007f";
+    default:
+      if (str < 0x20) {
+        *size = 6;
+        return control_chars[static_cast<std::size_t>(str)];
+      } else {
+        return nullptr;
+      }
+  }
+}
+
 v8::Local<v8::String> StringifyString(v8::Isolate* isolate,
     v8::Local<v8::String> string) {
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::Object> global = context->Global();
+  uint32_t length = string->Length();
+  std::vector<char> result_str;
+  result_str.reserve((length + 1) * 2);
+  result_str.push_back('\'');
+  v8::String::Utf8Value utf8string(string);
+  const char* c_string = *utf8string;
+  for (uint32_t i = 0; i < length; i++) {
+    std::size_t offset;
+    const char* ch = GetEscapedControlChar(isolate, c_string[i], &offset);
+    if (ch) {
+      for (std::size_t k = 0; k < offset; k++) {
+        result_str.push_back(ch[k]);
+      }
+    } else {
+      result_str.push_back(c_string[i]);
+    }
+  }
 
-  v8::Local<v8::Object> json = global->Get(context,
-      v8::String::NewFromUtf8(isolate, "JSON"))
-      .ToLocalChecked().As<v8::Object>();
+  result_str.push_back('\'');
 
-  v8::Local<v8::Value> stringify = json->Get(context,
-      v8::String::NewFromUtf8(isolate, "stringify")).ToLocalChecked();
-
-  v8::Local<v8::Value> args[] = { string };
-  v8::Local<v8::Value> result = stringify.As<v8::Function>()->Call(context,
-      json, 1, args).ToLocalChecked();
-
-  v8::Local<v8::Function> slice = result.As<v8::Object>()->Get(context,
-      v8::String::NewFromUtf8(isolate, "slice")).ToLocalChecked()
-      .As<v8::Function>();
-  v8::Local<v8::Function> replace = result.As<v8::Object>()->Get(context,
-      v8::String::NewFromUtf8(isolate, "replace")).ToLocalChecked()
-      .As<v8::Function>();
-
-  v8::Local<v8::Value> slice_args[] = {v8::Number::New(isolate, 1),
-      v8::Number::New(isolate, -1)};
-  result = slice->Call(context, result, 2, slice_args).ToLocalChecked();
-
-  v8::Local<v8::RegExp> regex = v8::RegExp::New(context,
-      v8::String::NewFromUtf8(isolate, "'"), v8::RegExp::Flags::kGlobal)
-      .ToLocalChecked();
-  v8::Local<v8::Value> replace_args[] = { regex,
-      v8::String::NewFromUtf8(isolate, "\\'")};
-
-  result = replace->Call(context, result, 2, replace_args).ToLocalChecked();
-  v8::Local<v8::String> quotes = v8::String::NewFromUtf8(isolate, "\'");
-  v8::Local<v8::String> res_str = result->ToString();
-  res_str = v8::String::Concat(quotes, v8::String::Concat(res_str, quotes));
-
-  return res_str->ToString();
+  return v8::String::NewFromUtf8(isolate, result_str.data(),
+      v8::NewStringType::kNormal, result_str.size()).ToLocalChecked();
 }
 
 v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
@@ -587,7 +610,6 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
         t = (parse_func[current_type])(isolate, begin + i, end,
                                        &current_length);
         if (!t->IsUndefined()) {
-
           auto check_result = [isolate](v8::Maybe<bool> value) {
             if (value.IsNothing()) {
               isolate->ThrowException(
