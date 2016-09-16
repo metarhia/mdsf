@@ -61,25 +61,7 @@ namespace jstp {
 
 namespace jsrs {
 
-void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  v8::Isolate* isolate = args.GetIsolate();
-
-  if (args.Length() != 1) {
-    isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
-    return;
-  }
-
-  v8::HandleScope scope(isolate);
-
-  v8::Local<v8::String> result =
-    serializer::StringifyImpl(isolate, args[0]);
-  args.GetReturnValue().Set(result);
-}
-
-namespace serializer {
-
-v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
+v8::Local<v8::String> Stringify(v8::Isolate* isolate,
     v8::Local<v8::Value> value) {
   if (value->IsFunction()) {
     return v8::Local<v8::String>();
@@ -90,17 +72,19 @@ v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
       value->IsNull()) {
     return value->ToString(isolate->GetCurrentContext()).ToLocalChecked();
   } else if (value->IsDate()) {
-    return StringifyDate(isolate, value.As<v8::Date>());
+    return serializer::StringifyDate(isolate, value.As<v8::Date>());
   } else if (value->IsString()) {
-    return StringifyString(isolate, value.As<v8::String>());
+    return serializer::StringifyString(isolate, value.As<v8::String>());
   } else if (value->IsArray()) {
-    return StringifyArray(isolate, value.As<v8::Array>());
+    return serializer::StringifyArray(isolate, value.As<v8::Array>());
   } else if (value->IsObject()) {
-    return StringifyObject(isolate, value.As<v8::Object>());
+    return serializer::StringifyObject(isolate, value.As<v8::Object>());
   } else {
     return v8::Local<v8::String>();
   }
 }
+
+namespace serializer {
 
 v8::Local<v8::String> StringifyDate(v8::Isolate* isolate,
     v8::Local<v8::Date> date) {
@@ -128,7 +112,7 @@ v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
   for (uint32_t index = 0; index < length; index++) {
     v8::Local<v8::Value> value = array->Get(index);
     if (!value->IsUndefined()) {
-      v8::Local<v8::String> chunk = StringifyImpl(isolate, value);
+      v8::Local<v8::String> chunk = jstp::jsrs::Stringify(isolate, value);
       if (chunk.IsEmpty()) continue;
       result = v8::String::Concat(result, chunk);
     }
@@ -223,7 +207,7 @@ v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
   for (uint32_t i = 0; i < keys->Length(); i++) {
     v8::Local<v8::Value> key = keys->Get(context, i).ToLocalChecked();
     v8::Local<v8::Value> value = object->Get(context, key).ToLocalChecked();
-    chunk = StringifyImpl(isolate, value);
+    chunk = jstp::jsrs::Stringify(isolate, value);
     if (!value->IsUndefined() && !chunk.IsEmpty()) {
       if (i != 0 && first_defined) {
         result = v8::String::Concat(result, comma);
@@ -265,26 +249,26 @@ bool IsValidKey(v8::Isolate* isolate, const v8::String::Utf8Value& key) {
 
 }  // namespace serializer
 
-void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  v8::Isolate* isolate = args.GetIsolate();
-
-  if (args.Length() != 1) {
+v8::Local<v8::Value> Parse(v8::Isolate* isolate,
+      const v8::String::Utf8Value& in) {
+  const char* to_parse = deserializer::PrepareString(*in, in.length());
+  deserializer::Type type;
+  std::size_t size = strlen(to_parse);
+  if (!deserializer::GetType(to_parse, to_parse + size, &type)) {
     isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
-    return;
+        v8::String::NewFromUtf8(isolate, "Invalid type")));
+    return v8::Undefined(isolate);
   }
-  if (!args[0]->IsString()) {
-    isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8(isolate, "Wrong argument type")));
-    return;
+  v8::Local<v8::Value> result =
+      (deserializer::kParseFunctions[type])(isolate, to_parse,
+                                            to_parse + size, &size);
+  if (size != strlen(to_parse)) {
+    isolate->ThrowException(v8::Exception::SyntaxError(
+        v8::String::NewFromUtf8(isolate, "Invalid format")));
+    return v8::Undefined(isolate);
   }
-
-  v8::HandleScope scope(isolate);
-
-  v8::String::Utf8Value str(args[0]->ToString());
-
-  v8::Local<v8::Value> result = deserializer::ParseImpl(isolate, str);
-  args.GetReturnValue().Set(result);
+  delete[] to_parse;
+  return result;
 }
 
 namespace deserializer {
@@ -686,40 +670,56 @@ v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
   return array;
 }
 
-v8::Local<v8::Value> ParseImpl(v8::Isolate* isolate,
-                           const v8::String::Utf8Value& in) {
-  const char* to_parse = PrepareString(*in, in.length());
-  Type type;
-  std::size_t size = strlen(to_parse);
-  if (!GetType(to_parse, to_parse + size, &type)) {
-    isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8(isolate, "Invalid type")));
-    return v8::Undefined(isolate);
-  }
-  v8::Local<v8::Value> result = (kParseFunctions[type])(isolate, to_parse,
-                                                   to_parse + size, &size);
-  if (size != strlen(to_parse)) {
-    isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate, "Invalid format")));
-    return v8::Undefined(isolate);
-  }
-  delete[] to_parse;
-  return result;
-}
-
 }  // namespace deserializer
 
-}  // namespace jsrs
+namespace bindings {
 
-}  // namespace jstp
+void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
 
-namespace {
+  if (args.Length() != 1) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  v8::HandleScope scope(isolate);
+
+  v8::Local<v8::String> result = jstp::jsrs::Stringify(isolate, args[0]);
+  args.GetReturnValue().Set(result);
+}
+
+void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
+
+  if (args.Length() != 1) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+  if (!args[0]->IsString()) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong argument type")));
+    return;
+  }
+
+  v8::HandleScope scope(isolate);
+
+  v8::String::Utf8Value str(args[0]->ToString());
+
+  v8::Local<v8::Value> result = jstp::jsrs::Parse(isolate, str);
+  args.GetReturnValue().Set(result);
+}
 
 void Init(v8::Local<v8::Object> target) {
-  NODE_SET_METHOD(target, "stringify", jstp::jsrs::Stringify);
-  NODE_SET_METHOD(target, "parse", jstp::jsrs::Parse);
+  NODE_SET_METHOD(target, "stringify", Stringify);
+  NODE_SET_METHOD(target, "parse", Parse);
 }
 
 NODE_MODULE(jsrs, Init);
 
-}  // namespace
+}  // namespace bindings
+
+}  // namespace jsrs
+
+}  // namespace jstp
