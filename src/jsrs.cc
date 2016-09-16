@@ -588,7 +588,7 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
                                        &current_length);
         if (!t->IsUndefined()) {
 
-          auto check_result = [&](v8::Maybe<bool> value) {
+          auto check_result = [isolate](v8::Maybe<bool> value) {
             if (value.IsNothing()) {
               isolate->ThrowException(
                   v8::Exception::Error(v8::String::NewFromUtf8(isolate,
