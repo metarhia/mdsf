@@ -21,8 +21,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  *
- * This code is based upon the C++ implementation of JSTP parser and
- * serializer originating from `https://github.com/NechaiDO/JSTP-cpp`.
+ * The code in this file is based upon the C++ implementation of JSTP parser
+ * and serializer originating from `https://github.com/NechaiDO/JSTP-cpp`.
  * Original license:
  *
  * Copyright (c) 2016 Dmytro Nechai, Nikolai Belochub
@@ -47,12 +47,14 @@
  */
 
 #include "jsrs.h"
+#include "jsrs-impl.h"
 
 #include <cctype>
 #include <clocale>
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
+
 #include <vector>
 
 namespace jstp {
@@ -74,6 +76,29 @@ void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args) {
 }
 
 namespace stringifiers {
+
+v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
+    v8::Local<v8::Value> value) {
+  if (value->IsFunction()) {
+    return v8::Local<v8::String>();
+  }
+  if (value->IsNumber()    ||
+      value->IsBoolean()   ||
+      value->IsUndefined() ||
+      value->IsNull()) {
+    return value->ToString(isolate->GetCurrentContext()).ToLocalChecked();
+  } else if (value->IsDate()) {
+    return StringifyDate(isolate, value.As<v8::Date>());
+  } else if (value->IsString()) {
+    return StringifyString(isolate, value.As<v8::String>());
+  } else if (value->IsArray()) {
+    return StringifyArray(isolate, value.As<v8::Array>());
+  } else if (value->IsObject()) {
+    return StringifyObject(isolate, value.As<v8::Object>());
+  } else {
+    return v8::Local<v8::String>();
+  }
+}
 
 v8::Local<v8::String> StringifyDate(v8::Isolate* isolate,
     v8::Local<v8::Date> date) {
@@ -116,30 +141,34 @@ v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
   return result;
 }
 
-bool IsValidKey(v8::Isolate* isolate, const v8::String::Utf8Value& key) {
-  bool result = true;
-  const char* key_str = *key;
-  for (int i = 0; i < key.length(); i++) {
-    if (key_str[i] == '_') continue;
-    if ((i == 0 && !isalpha(key_str[i])) || !isalnum(key_str[i])) {
-      result = false;
-      break;
+v8::Local<v8::String> StringifyString(v8::Isolate* isolate,
+    v8::Local<v8::String> string) {
+  uint32_t length = string->Length();
+  std::vector<char> result_str;
+  result_str.reserve((length + 1) * 2);
+  result_str.push_back('\'');
+  v8::String::Utf8Value utf8string(string);
+  const char* c_string = *utf8string;
+  for (uint32_t i = 0; i < length; i++) {
+    std::size_t offset;
+    const char* ch = GetEscapedControlChar(c_string[i], &offset);
+    if (ch) {
+      for (std::size_t k = 0; k < offset; k++) {
+        result_str.push_back(ch[k]);
+      }
+    } else {
+      result_str.push_back(c_string[i]);
     }
   }
-  return result;
-}
 
-v8::Local<v8::String> StringifyKey(v8::Isolate* isolate,
-    v8::Local<v8::String> key) {
-  v8::String::Utf8Value key_str(key.As<v8::Value>());
-  if (!IsValidKey(isolate, key_str)) {
-    return StringifyString(isolate, key);
-  }
-  return key;
+  result_str.push_back('\'');
+
+  return v8::String::NewFromUtf8(isolate, result_str.data(),
+      v8::NewStringType::kNormal, result_str.size()).ToLocalChecked();
 }
 
 const char* GetEscapedControlChar(char str, std::size_t* size) {
-  const char* control_chars[0x20] = {
+  constexpr static const char* control_chars[0x20] = {
     "\\u0000", "\\u0001", "\\u0002",
     "\\u0003", "\\u0004", "\\u0005",
     "\\u0006", "\\u0007", "\\u0008",
@@ -176,32 +205,6 @@ const char* GetEscapedControlChar(char str, std::size_t* size) {
   }
 }
 
-v8::Local<v8::String> StringifyString(v8::Isolate* isolate,
-    v8::Local<v8::String> string) {
-  uint32_t length = string->Length();
-  std::vector<char> result_str;
-  result_str.reserve((length + 1) * 2);
-  result_str.push_back('\'');
-  v8::String::Utf8Value utf8string(string);
-  const char* c_string = *utf8string;
-  for (uint32_t i = 0; i < length; i++) {
-    std::size_t offset;
-    const char* ch = GetEscapedControlChar(c_string[i], &offset);
-    if (ch) {
-      for (std::size_t k = 0; k < offset; k++) {
-        result_str.push_back(ch[k]);
-      }
-    } else {
-      result_str.push_back(c_string[i]);
-    }
-  }
-
-  result_str.push_back('\'');
-
-  return v8::String::NewFromUtf8(isolate, result_str.data(),
-      v8::NewStringType::kNormal, result_str.size()).ToLocalChecked();
-}
-
 v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
     v8::Local<v8::Object> object) {
   v8::Local<v8::String> comma = v8::String::NewFromUtf8(isolate, ",");
@@ -236,36 +239,53 @@ v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
   return result;
 }
 
-v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
-    v8::Local<v8::Value> value) {
-  if (value->IsFunction()) {
-    return v8::Local<v8::String>();
+v8::Local<v8::String> StringifyKey(v8::Isolate* isolate,
+    v8::Local<v8::String> key) {
+  v8::String::Utf8Value key_str(key.As<v8::Value>());
+  if (!IsValidKey(isolate, key_str)) {
+    return StringifyString(isolate, key);
   }
-  if (value->IsNumber()    ||
-      value->IsBoolean()   ||
-      value->IsUndefined() ||
-      value->IsNull()) {
-    return value->ToString(isolate->GetCurrentContext()).ToLocalChecked();
-  } else if (value->IsDate()) {
-    return StringifyDate(isolate, value.As<v8::Date>());
-  } else if (value->IsString()) {
-    return StringifyString(isolate, value.As<v8::String>());
-  } else if (value->IsArray()) {
-    return StringifyArray(isolate, value.As<v8::Array>());
-  } else if (value->IsObject()) {
-    return StringifyObject(isolate, value.As<v8::Object>());
-  } else {
-    return v8::Local<v8::String>();
+  return key;
+}
+
+bool IsValidKey(v8::Isolate* isolate, const v8::String::Utf8Value& key) {
+  bool result = true;
+  const char* key_str = *key;
+  for (int i = 0; i < key.length(); i++) {
+    if (key_str[i] == '_') continue;
+    if ((i == 0 && !isalpha(key_str[i])) || !isalnum(key_str[i])) {
+      result = false;
+      break;
+    }
   }
+  return result;
 }
 
 }  // namespace stringifiers
 
-namespace parsing {
+void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
 
-enum Type {
-  kUndefined = 0, kNull, kBool, kNumber, kString, kArray, kObject, kDate
-};
+  if (args.Length() != 1) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+  if (!args[0]->IsString()) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong argument type")));
+    return;
+  }
+
+  v8::HandleScope scope(isolate);
+
+  v8::String::Utf8Value str(args[0]->ToString());
+
+  v8::Local<v8::Value> result = parsing::ParseImpl(isolate, str);
+  args.GetReturnValue().Set(result);
+}
+
+namespace parsing {
 
 const char* PrepareString(const char* str, std::size_t length) {
   char* result = new char[length + 1];
@@ -301,78 +321,6 @@ const char* PrepareString(const char* str, std::size_t length) {
   result[j] = '\0';
   return result;
 }
-
-bool GetType(const char* begin, const char* end, Type* type) {
-  bool result = true;
-  switch (*begin) {
-    case ',':
-    case ']':
-      *type = Type::kUndefined;
-      break;
-    case '{':
-      *type = Type::kObject;
-      break;
-    case '[':
-      *type = Type::kArray;
-      break;
-    case '\"':
-    case '\'':
-      *type = Type::kString;
-      break;
-    case 't':
-    case 'f':
-      *type = Type::kBool;
-      break;
-    case 'n':
-      *type = Type::kNull;
-      if (begin + 4 <= end) {
-        result = (std::strncmp(begin, "null", 4) == 0);
-      }
-      break;
-    case 'u':
-      *type = Type::kUndefined;
-      if (begin + 9 <= end) {
-        result = (std::strncmp(begin, "undefined", 9) == 0);
-      }
-      break;
-    default:
-      result = false;
-      if (isdigit(*begin) || *begin == '.' || *begin == '+' || *begin == '-') {
-        *type = Type::kNumber;
-        result = true;
-      }
-  }
-  return result;
-}
-
-// Parse functions
-v8::Local<v8::Value> ParseUndefined(v8::Isolate* isolate, const char* begin,
-    const char* end, std::size_t* size);
-v8::Local<v8::Value> ParseNull(v8::Isolate* isolate, const char* begin,
-    const char* end, std::size_t* size);
-v8::Local<v8::Value> ParseBool(v8::Isolate* isolate, const char* begin,
-    const char* end, std::size_t* size);
-v8::Local<v8::Value> ParseNumber(v8::Isolate* isolate, const char* begin,
-    const char* end, std::size_t* size);
-v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
-    const char* end, std::size_t* size);
-v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
-    const char* end, std::size_t* size);
-v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
-    const char* end, std::size_t* size);
-
-const std::size_t kMaxKeyLength = 256;
-
-v8::Local<v8::Value> (*parse_func[])(v8::Isolate*, const char *,
-                                     const char *, std::size_t *) = {
-  &ParseUndefined,
-  &ParseNull,
-  &ParseBool,
-  &ParseNumber,
-  &ParseString,
-  &ParseArray,
-  &ParseObject
-};
 
 v8::Local<v8::Value> ParseUndefined(v8::Isolate* isolate, const char* begin,
                                     const char* end, std::size_t* size) {
@@ -420,6 +368,48 @@ v8::Local<v8::Value> ParseNumber(v8::Isolate* isolate, const char* begin,
          i < *size) i++;
   *size = i;
   return result;
+}
+
+v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
+                                 const char* end, std::size_t* size) {
+  *size = end - begin;
+  char* result = new char[*size + 1];
+  std::memset(result, 0, *size + 1);
+  enum { kApostrophe = 0, kQMarks} string_mode =
+       (*begin == '\'') ? kApostrophe : kQMarks;
+  bool is_ended = false;
+  std::size_t res_index = 0;
+  std::size_t out_offset, in_offset;
+  for (std::size_t i = 1; i < *size; i++) {
+    if (((string_mode == kQMarks && begin[i] == '\"') ||
+         (string_mode == kApostrophe && begin[i] == '\'')) &&
+          begin[i - 1] != '\\') {
+      is_ended = true;
+      *size = i + 1;
+      result[res_index] = '\0';
+      break;
+    }
+    if (begin[i] == '\\') {
+      char* symb = GetControlChar(isolate, begin + ++i, &out_offset,
+          &in_offset);
+      if (!symb) {
+        return v8::String::Empty(isolate);
+      }
+      std::strncpy(result + res_index, symb, out_offset);
+      delete []symb;
+      i += in_offset - 1;
+      res_index += out_offset;
+    } else {
+      result[res_index++] = begin[i];
+    }
+  }
+  if (!is_ended) {
+    isolate->ThrowException(v8::Exception::SyntaxError(
+    v8::String::NewFromUtf8(isolate, "Error while parsing string")));
+    return v8::String::Empty(isolate);
+  }
+  return v8::String::NewFromUtf8(isolate, result, v8::NewStringType::kNormal,
+                                 res_index).ToLocalChecked();
 }
 
 char* CodePointsToUtf8(unsigned int c, std::size_t* size) {
@@ -523,48 +513,6 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
   return result;
 }
 
-v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
-                                 const char* end, std::size_t* size) {
-  *size = end - begin;
-  char* result = new char[*size + 1];
-  std::memset(result, 0, *size + 1);
-  enum { kApostrophe = 0, kQMarks} string_mode =
-       (*begin == '\'') ? kApostrophe : kQMarks;
-  bool is_ended = false;
-  std::size_t res_index = 0;
-  std::size_t out_offset, in_offset;
-  for (std::size_t i = 1; i < *size; i++) {
-    if (((string_mode == kQMarks && begin[i] == '\"') ||
-         (string_mode == kApostrophe && begin[i] == '\'')) &&
-          begin[i - 1] != '\\') {
-      is_ended = true;
-      *size = i + 1;
-      result[res_index] = '\0';
-      break;
-    }
-    if (begin[i] == '\\') {
-      char* symb = GetControlChar(isolate, begin + ++i, &out_offset,
-          &in_offset);
-      if (!symb) {
-        return v8::String::Empty(isolate);
-      }
-      std::strncpy(result + res_index, symb, out_offset);
-      delete []symb;
-      i += in_offset - 1;
-      res_index += out_offset;
-    } else {
-      result[res_index++] = begin[i];
-    }
-  }
-  if (!is_ended) {
-    isolate->ThrowException(v8::Exception::SyntaxError(
-    v8::String::NewFromUtf8(isolate, "Error while parsing string")));
-    return v8::String::Empty(isolate);
-  }
-  return v8::String::NewFromUtf8(isolate, result, v8::NewStringType::kNormal,
-                                 res_index).ToLocalChecked();
-}
-
 v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
                                  const char* end, std::size_t* size) {
   bool key_mode = true;
@@ -608,7 +556,7 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
     } else {
       bool valid = GetType(begin + i, end, &current_type);
       if (valid) {
-        t = (parse_func[current_type])(isolate, begin + i, end,
+        t = (kParseFunctions[current_type])(isolate, begin + i, end,
                                        &current_length);
         if (!t->IsUndefined()) {
           auto check_result = [isolate](v8::Maybe<bool> value) {
@@ -653,6 +601,49 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
   return object;
 }
 
+bool GetType(const char* begin, const char* end, Type* type) {
+  bool result = true;
+  switch (*begin) {
+    case ',':
+    case ']':
+      *type = Type::kUndefined;
+      break;
+    case '{':
+      *type = Type::kObject;
+      break;
+    case '[':
+      *type = Type::kArray;
+      break;
+    case '\"':
+    case '\'':
+      *type = Type::kString;
+      break;
+    case 't':
+    case 'f':
+      *type = Type::kBool;
+      break;
+    case 'n':
+      *type = Type::kNull;
+      if (begin + 4 <= end) {
+        result = (std::strncmp(begin, "null", 4) == 0);
+      }
+      break;
+    case 'u':
+      *type = Type::kUndefined;
+      if (begin + 9 <= end) {
+        result = (std::strncmp(begin, "undefined", 9) == 0);
+      }
+      break;
+    default:
+      result = false;
+      if (isdigit(*begin) || *begin == '.' || *begin == '+' || *begin == '-') {
+        *type = Type::kNumber;
+        result = true;
+      }
+  }
+  return result;
+}
+
 v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
                                 const char* end, std::size_t* size) {
   Type current_type;
@@ -668,7 +659,8 @@ v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
   for (std::size_t i = 1; i < *size; i++) {
     bool valid = GetType(begin + i, end, &current_type);
     if (valid) {
-      t = (parse_func[current_type])(isolate, begin + i, end, &current_length);
+      t = kParseFunctions[current_type](isolate,
+          begin + i, end, &current_length);
       array->Set(current_element++, t);
       i += current_length;
 
@@ -692,7 +684,7 @@ v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
   return array;
 }
 
-v8::Local<v8::Value> Parse(v8::Isolate* isolate,
+v8::Local<v8::Value> ParseImpl(v8::Isolate* isolate,
                            const v8::String::Utf8Value& in) {
   const char* to_parse = PrepareString(*in, in.length());
   Type type;
@@ -702,7 +694,7 @@ v8::Local<v8::Value> Parse(v8::Isolate* isolate,
         v8::String::NewFromUtf8(isolate, "Invalid type")));
     return v8::Undefined(isolate);
   }
-  v8::Local<v8::Value> result = (parse_func[type])(isolate, to_parse,
+  v8::Local<v8::Value> result = (kParseFunctions[type])(isolate, to_parse,
                                                    to_parse + size, &size);
   if (size != strlen(to_parse)) {
     isolate->ThrowException(v8::Exception::SyntaxError(
@@ -715,37 +707,15 @@ v8::Local<v8::Value> Parse(v8::Isolate* isolate,
 
 }  // namespace parsing
 
-void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  v8::Isolate* isolate = args.GetIsolate();
-
-  if (args.Length() != 1) {
-    isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
-    return;
-  }
-  if (!args[0]->IsString()) {
-    isolate->ThrowException(v8::Exception::TypeError(
-        v8::String::NewFromUtf8(isolate, "Wrong argument type")));
-    return;
-  }
-
-  v8::HandleScope scope(isolate);
-
-  v8::String::Utf8Value str(args[0]->ToString());
-
-  v8::Local<v8::Value> result = parsing::Parse(isolate, str);
-  args.GetReturnValue().Set(result);
-}
-
 }  // namespace jstp
 
 namespace {
 
-void init(v8::Local<v8::Object> target) {
+void Init(v8::Local<v8::Object> target) {
   NODE_SET_METHOD(target, "stringify", jstp::Stringify);
   NODE_SET_METHOD(target, "parse", jstp::Parse);
 }
 
-NODE_MODULE(jsrs, init);
+NODE_MODULE(jsrs, Init);
 
 }  // namespace
