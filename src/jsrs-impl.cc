@@ -198,7 +198,7 @@ v8::Local<v8::String> StringifyObject(v8::Isolate* isolate,
 
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
-  v8::Local<v8::Array> keys = object->GetPropertyNames(context)
+  v8::Local<v8::Array> keys = object->GetOwnPropertyNames(context)
                                       .ToLocalChecked();
   v8::Local<v8::String> chunk;
   bool first_defined = true;
