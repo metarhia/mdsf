@@ -138,9 +138,7 @@ v8::Local<v8::String> StringifyKey(v8::Isolate* isolate,
   return key;
 }
 
-const char* GetEscapedControlChar(v8::Isolate* isolate, char str,
-    std::size_t* size) {
-  *size = 2;
+const char* GetEscapedControlChar(char str, std::size_t* size) {
   const char* control_chars[0x20] = {
     "\\u0000", "\\u0001", "\\u0002",
     "\\u0003", "\\u0004", "\\u0005",
@@ -154,6 +152,9 @@ const char* GetEscapedControlChar(v8::Isolate* isolate, char str,
     "\\u001b", "\\u001c", "\\u001d",
     "\\u001e", "\\u001f"
   };
+
+  *size = 2;
+
   switch (str) {
     case '\a': return "\\a";
     case '\b': return "\\b";
@@ -185,7 +186,7 @@ v8::Local<v8::String> StringifyString(v8::Isolate* isolate,
   const char* c_string = *utf8string;
   for (uint32_t i = 0; i < length; i++) {
     std::size_t offset;
-    const char* ch = GetEscapedControlChar(isolate, c_string[i], &offset);
+    const char* ch = GetEscapedControlChar(c_string[i], &offset);
     if (ch) {
       for (std::size_t k = 0; k < offset; k++) {
         result_str.push_back(ch[k]);
