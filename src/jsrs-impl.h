@@ -49,12 +49,16 @@
 #ifndef JSRS_IMPL_H_
 #define JSRS_IMPL_H_
 
+#include <cstddef>
+
 #include <node.h>
 #include <v8.h>
 
 namespace jstp {
 
-namespace stringifiers {
+namespace jsrs {
+
+namespace serializer {
 
 v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
     v8::Local<v8::Value> value);
@@ -72,9 +76,9 @@ v8::Local<v8::String> StringifyKey(v8::Isolate* isolate,
 bool IsValidKey(v8::Isolate* isolate, const v8::String::Utf8Value& key);
 const char* GetEscapedControlChar(char str, std::size_t* size);
 
-}  // namespace stringifiers
+}  // namespace serializer
 
-namespace parsing {
+namespace deserializer {
 
 enum Type {
   kUndefined = 0, kNull, kBool, kNumber, kString, kArray, kObject, kDate
@@ -117,7 +121,9 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
 v8::Local<v8::Value> ParseImpl(v8::Isolate* isolate,
                            const v8::String::Utf8Value& in);
 
-}  // namespace parsing
+}  // namespace deserializer
+
+}  // namespace jsrs
 
 }  // namespace jstp
 

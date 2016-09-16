@@ -59,6 +59,8 @@
 
 namespace jstp {
 
+namespace jsrs {
+
 void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Isolate* isolate = args.GetIsolate();
 
@@ -71,11 +73,11 @@ void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::HandleScope scope(isolate);
 
   v8::Local<v8::String> result =
-    stringifiers::StringifyImpl(isolate, args[0]);
+    serializer::StringifyImpl(isolate, args[0]);
   args.GetReturnValue().Set(result);
 }
 
-namespace stringifiers {
+namespace serializer {
 
 v8::Local<v8::String> StringifyImpl(v8::Isolate* isolate,
     v8::Local<v8::Value> value) {
@@ -261,7 +263,7 @@ bool IsValidKey(v8::Isolate* isolate, const v8::String::Utf8Value& key) {
   return result;
 }
 
-}  // namespace stringifiers
+}  // namespace serializer
 
 void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Isolate* isolate = args.GetIsolate();
@@ -281,11 +283,11 @@ void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
   v8::String::Utf8Value str(args[0]->ToString());
 
-  v8::Local<v8::Value> result = parsing::ParseImpl(isolate, str);
+  v8::Local<v8::Value> result = deserializer::ParseImpl(isolate, str);
   args.GetReturnValue().Set(result);
 }
 
-namespace parsing {
+namespace deserializer {
 
 const char* PrepareString(const char* str, std::size_t length) {
   char* result = new char[length + 1];
@@ -705,15 +707,17 @@ v8::Local<v8::Value> ParseImpl(v8::Isolate* isolate,
   return result;
 }
 
-}  // namespace parsing
+}  // namespace deserializer
+
+}  // namespace jsrs
 
 }  // namespace jstp
 
 namespace {
 
 void Init(v8::Local<v8::Object> target) {
-  NODE_SET_METHOD(target, "stringify", jstp::Stringify);
-  NODE_SET_METHOD(target, "parse", jstp::Parse);
+  NODE_SET_METHOD(target, "stringify", jstp::jsrs::Stringify);
+  NODE_SET_METHOD(target, "parse", jstp::jsrs::Parse);
 }
 
 NODE_MODULE(jsrs, Init);

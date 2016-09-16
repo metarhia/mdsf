@@ -30,8 +30,12 @@
 
 namespace jstp {
 
+namespace jsrs {
+
 void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args);
 void Parse(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+}  // namespace jsrs
 
 }  // namespace jstp
 
