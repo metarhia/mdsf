@@ -88,9 +88,9 @@ v8::Local<v8::String> StringifyDate(v8::Isolate* isolate,
     v8::Local<v8::Date> date) {
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   v8::Local<v8::Value> toISOString = date->Get(context,
-    v8::String::NewFromUtf8(isolate, "toISOString")).ToLocalChecked();
+      v8::String::NewFromUtf8(isolate, "toISOString")).ToLocalChecked();
   v8::Local<v8::Value> result = toISOString.As<v8::Function>()->Call(context,
-    date, 0, nullptr).ToLocalChecked();
+      date, 0, nullptr).ToLocalChecked();
   v8::Local<v8::String> quotes = v8::String::NewFromUtf8(isolate, "\'");
   v8::Local<v8::String> res_str = result->ToString();
   res_str = v8::String::Concat(quotes, v8::String::Concat(res_str, quotes));
@@ -100,10 +100,10 @@ v8::Local<v8::String> StringifyDate(v8::Isolate* isolate,
 v8::Local<v8::String> StringifyArray(v8::Isolate* isolate,
     v8::Local<v8::Array> array) {
   v8::Local<v8::String> comma =
-    v8::String::NewFromUtf8(isolate, ",");
+      v8::String::NewFromUtf8(isolate, ",");
 
   v8::Local<v8::String> result =
-    v8::String::NewFromUtf8(isolate, "[");
+      v8::String::NewFromUtf8(isolate, "[");
 
   uint32_t length = array->Length();
 
