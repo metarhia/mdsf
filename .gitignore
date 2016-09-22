@@ -1,6 +1,8 @@
 # Node.js and NPM
 node_modules
 *.log
+*.cpuprofile
+*.heapsnapshot
 
 # Development helpers
 crlf.js
