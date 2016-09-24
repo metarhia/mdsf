@@ -102,7 +102,172 @@
   //   string - a string to parse
   //
   jsrs.parse = function parse(string) {
+    var lookaheadIndex = 0;
 
-  };
+    var value = parseValue();
+
+    skipClutter();
+    if (lookaheadIndex < string.length) {
+      throwUnexpected();
+    }
+
+    return value;
+
+    function lookahead() {
+      return string[lookaheadIndex];
+    }
+
+    function advance() {
+      var character = string[lookaheadIndex++];
+      if (lookaheadIndex > string.length) {
+        throw new SyntaxError('Unexpected end of data');
+      }
+      return character;
+    }
+
+    function retreat() {
+      lookaheadIndex--;
+      if (lookaheadIndex < 0) {
+        throw new SyntaxError('Parse error');
+      }
+    }
+
+    function throwError(message) {
+      throw new SyntaxError(message + ' at position ' + lookaheadIndex);
+    }
+
+    function throwExpected(token) {
+      throwError(token + ' expected');
+    }
+
+    function throwUnexpected(token) {
+      token = token || lookahead();
+      if (token === undefined) {
+        token = 'end of data';
+      }
+
+      throwError('Unexpected ' + token);
+    }
+
+    function isWhitespace(character) {
+      return ' \f\n\r\t\v'.indexOf(character) !== -1;
+    }
+
+    function isNewline(character) {
+      return character === '\n' || character === '\r';
+    }
+
+    function isLetter(character) {
+      return character >= 'a' && character <= 'z';
+    }
+
+    function skipClutter() {
+      skipWhitespace();
+      skipComments();
+      skipWhitespace();
+    }
+
+    function skipWhitespace() {
+      while (isWhitespace(lookahead())) {
+        advance();
+      }
+    }
+
+    function skipComments() {
+      if (lookahead() !== '/') {
+        return;
+      }
+
+      advance();
+
+      if (lookahead() === '/') {
+        advance();
+        skipLineCommentBody();
+      } else if (lookahead() === '*') {
+        advance();
+        skipMultilineCommentBody();
+      } else {
+        retreat();
+      }
+    }
+
+    function skipLineCommentBody() {
+      while (!isNewline(lookahead()) &&
+             lookahead() !== undefined) {
+        advance();
+      }
+    }
+
+    function skipMultilineCommentBody() {
+      var done = false;
+
+      while (!done) {
+        while (lookahead() !== '*') {
+          advance();
+        }
+        advance();
+
+        if (lookahead() === '/') {
+          advance();
+          done = true;
+        }
+      }
+    }
+
+    function parseValue() {
+      skipClutter();
+
+      var look = lookahead();
+      if (/[\d+-.]/.test(look)) {
+        return parseNumber();
+      } else if (isLetter(look)) {
+        return parseIdentifier();
+      } else if (look === '\'' || look === '"') {
+        return parseString();
+      } else if (look === '[') {
+        return parseArray();
+      } else if (look === '{') {
+        return parseObject();
+      } else {
+        throwUnexpected();
+      }
+    }
+
+    function parseNumber() {
+
+    }
+
+    function parseIdentifier() {
+      var identifier = '';
+      while (isLetter(lookahead())) {
+        identifier += advance();
+      }
+
+      var matching = {
+        undefined: undefined,
+        null: null,
+        true: true,
+        false: false
+      };
+
+      if (matching.hasOwnProperty(identifier)) {
+        return matching[identifier];
+      } else {
+        throwUnexpected();
+      }
+    }
+
+    function parseString() {
+
+    }
+
+    function parseArray() {
+
+    }
+
+    function parseObject() {
+
+    }
+};
 
 })();
