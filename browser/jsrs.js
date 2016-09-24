@@ -12,8 +12,8 @@
     jsrs = window.api.jstp;
   }
 
-  // Serializes a JavaScript value using the JSTP Record Serialization format
-  // and returns a string representing it.
+  // Serialize a JavaScript value using the JSTP Record Serialization format
+  // and return a string representing it.
   //   object - an object to serialize
   //
   jsrs.stringify = function stringify(object) {
@@ -97,8 +97,8 @@
     }
   };
 
-  // Deserializes a string in the JSTP Record Serialization format into
-  // a JavaScript value and returns it.
+  // Deserialize a string in the JSTP Record Serialization format into
+  // a JavaScript value and return it.
   //   string - a string to parse
   //
   jsrs.parse = function parse(string) {
@@ -106,11 +106,16 @@
     return parser.parse();
   };
 
+  // Internal JSRS parser class
+  //   string - a string to parse
+  //
   function JsrsParser(string) {
     this.string = string;
     this.lookaheadIndex = 0;
   }
 
+  // Start parsing
+  //
   JsrsParser.prototype.parse = function() {
     var value = this.parseValue();
 
@@ -122,10 +127,15 @@
     return value;
   };
 
+  // Return the current lookahead character
+  //
   JsrsParser.prototype.lookahead = function() {
     return this.string[this.lookaheadIndex];
   };
 
+  // Advance to the next character and return the character
+  // that used to be lookahead
+  //
   JsrsParser.prototype.advance = function() {
     var character = this.string[this.lookaheadIndex++];
     if (this.lookaheadIndex > this.string.length) {
@@ -134,6 +144,8 @@
     return character;
   };
 
+  // Step back to the previous character
+  //
   JsrsParser.prototype.retreat = function() {
     this.lookaheadIndex--;
     if (this.lookaheadIndex < 0) {
@@ -141,14 +153,23 @@
     }
   };
 
+  // Throw a generic parsing error
+  //   message - error message
+  //
   JsrsParser.prototype.throwError = function(message) {
     throw new SyntaxError(message + ' at position ' + this.lookaheadIndex);
   };
 
+  // Throw a 'smth expected' error
+  //   token - what has been expected
+  //
   JsrsParser.prototype.throwExpected = function(token) {
     this.throwError(token + ' expected');
   };
 
+  // Throw a 'smth unexpected' error
+  //   token - what has been unexpected
+  //
   JsrsParser.prototype.throwUnexpected = function(token) {
     token = token || this.lookahead();
     if (token === undefined) {
@@ -158,30 +179,45 @@
     this.throwError('Unexpected ' + token);
   };
 
+  // Check if a given character is a whitespace character
+  //   character - a character to check
+  //
   JsrsParser.prototype.isWhitespace = function(character) {
     return ' \f\n\r\t\v'.indexOf(character) !== -1;
   };
 
+  // Check if a given character is a newline character
+  //   character - a character to check
+  //
   JsrsParser.prototype.isNewline = function(character) {
     return character === '\n' || character === '\r';
   };
 
+  // Check if a given character is a lowercase letter character
+  //   character - a character to check
+  //
   JsrsParser.prototype.isLetter = function(character) {
     return character >= 'a' && character <= 'z';
   };
 
+  // Skip whitespace and comments
+  //
   JsrsParser.prototype.skipClutter = function() {
     this.skipWhitespace();
     this.skipComments();
     this.skipWhitespace();
   };
 
+  // Skip whitespace
+  //
   JsrsParser.prototype.skipWhitespace = function() {
     while (this.isWhitespace(this.lookahead())) {
       this.advance();
     }
   };
 
+  // Skip comments
+  //
   JsrsParser.prototype.skipComments = function() {
     if (this.lookahead() !== '/') {
       return;
@@ -200,6 +236,8 @@
     }
   };
 
+  // Skip the body of a single-line comment (i.e. the part after //)
+  //
   JsrsParser.prototype.skipLineCommentBody = function() {
     while (!this.isNewline(this.lookahead()) &&
             this.lookahead() !== undefined) {
@@ -207,6 +245,8 @@
     }
   };
 
+  // Skip the body of a multiline comment (i.e. the part after /*)
+  //
   JsrsParser.prototype.skipMultilineCommentBody = function() {
     var done = false;
 
@@ -223,6 +263,8 @@
     }
   };
 
+  // Parse a JavaScript value
+  //
   JsrsParser.prototype.parseValue = function() {
     this.skipClutter();
 
@@ -242,10 +284,14 @@
     }
   };
 
+  // Parse a number
+  //
   JsrsParser.prototype.parseNumber = function() {
 
   };
 
+  // Parse null, undefined, true or false
+  //
   JsrsParser.prototype.parseIdentifier = function() {
     var identifier = '';
     while (this.isLetter(this.lookahead())) {
@@ -266,14 +312,20 @@
     }
   };
 
+  // Parse a single-quoted or double-quoted string
+  //
   JsrsParser.prototype.parseString = function() {
 
   };
 
+  // Parse an array
+  //
   JsrsParser.prototype.parseArray = function() {
 
   };
 
+  // Parse an object
+  //
   JsrsParser.prototype.parseObject = function() {
 
   };
