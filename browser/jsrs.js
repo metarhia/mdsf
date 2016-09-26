@@ -153,6 +153,16 @@
     }
   };
 
+  // Advances one character ensuring the equality of the passed
+  // one to the given one
+  //   token - a character to match
+  //
+  JsrsParser.prototype.match = function(token) {
+    if (this.advance() !== token) {
+      this.throwExpected(token);
+    }
+  };
+
   // Throw a generic parsing error
   //   message - error message
   //
@@ -287,12 +297,14 @@
   // Parse a number
   //
   JsrsParser.prototype.parseNumber = function() {
-
+    this.skipClutter();
   };
 
   // Parse null, undefined, true or false
   //
   JsrsParser.prototype.parseIdentifier = function() {
+    this.skipClutter();
+
     var identifier = '';
     while (this.isLetter(this.lookahead())) {
       identifier += this.advance();
@@ -315,19 +327,44 @@
   // Parse a single-quoted or double-quoted string
   //
   JsrsParser.prototype.parseString = function() {
-
+    this.skipClutter();
   };
 
   // Parse an array
   //
   JsrsParser.prototype.parseArray = function() {
+    this.skipClutter();
+    this.match('[');
 
+    var array = [];
+
+    while (this.lookahead() !== ']') {
+      this.skipClutter();
+
+      if (this.lookahead() === ',') {
+        array.push(undefined);
+      } else if (this.lookahead() === ']') {
+        break;
+      } else {
+        var value = this.parseValue();
+        array.push(value);
+      }
+
+      this.skipClutter();
+      if (this.lookahead() !== ']') {
+        this.match(',');
+      }
+    }
+
+    this.match(']');
+
+    return array;
   };
 
   // Parse an object
   //
   JsrsParser.prototype.parseObject = function() {
-
+    this.skipClutter();
   };
 
 })();
