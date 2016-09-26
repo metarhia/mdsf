@@ -210,6 +210,15 @@
     return character >= 'a' && character <= 'z';
   };
 
+  // Check if a given character is one of that are allowed
+  // in numbers
+  JsrsParser.prototype.isDigit = function(character) {
+    return (character >= '0' && character <= '9') ||
+      (character === '+' || character === '-') ||
+      (character === 'e' || character === 'E') ||
+      character === '.';
+  };
+
   // Skip whitespace and comments
   //
   JsrsParser.prototype.skipClutter = function() {
@@ -298,7 +307,41 @@
   //
   JsrsParser.prototype.parseNumber = function() {
     this.skipClutter();
+
+    var number = '';
+
+    var encountered = {  // parseFloat ignores unparsed part of
+      dot: false,        // the string so we must handle it manually
+      sign: false,
+      exponent: false
+    };
+
+    while (this.isDigit(this.lookahead())) {
+      this.checkNumberPartEncountered(encountered, 'dot', '.');
+      this.checkNumberPartEncountered(encountered, 'sign', '+', '-');
+      this.checkNumberPartEncountered(encountered, 'exponent', 'e', 'E');
+
+      number += this.advance();
+    }
+
+    var value = parseFloat(number);
+    if (isNaN(value)) {
+      this.throwError('Invalid number format');
+    }
+
+    return value;
   };
+
+  JsrsParser.prototype.checkNumberPartEncountered =
+    function(encounterContext, name, character, altCharacter) {
+      var look = this.lookahead();
+      if (look === character || (altCharacter && look === altCharacter)) {
+        if (encounterContext[name]) {
+          this.throwUnexpected();
+        }
+        encounterContext[name] = true;
+      }
+    };
 
   // Parse null, undefined, true or false
   //
