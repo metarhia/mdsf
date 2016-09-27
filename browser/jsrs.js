@@ -219,6 +219,20 @@
       character === '.';
   };
 
+  // Check if a given character is an octal digit
+  //
+  JsrsParser.prototype.isOctalDigit = function(character) {
+    return character >= '0' && character <= '7';
+  };
+
+  // Check if a given character is a hexadecimal digit
+  //
+  JsrsParser.prototype.isHexadecimalDigit = function(character) {
+    return (character >= '0' && character <= '9') ||
+      (character >= 'a' && character <= 'f') ||
+      (character >= 'A' && character <= 'F');
+  };
+
   // Skip whitespace and comments
   //
   JsrsParser.prototype.skipClutter = function() {
@@ -304,6 +318,7 @@
   };
 
   // Parse a number
+  // TODO: binary, octal and hexadecimal numbers
   //
   JsrsParser.prototype.parseNumber = function() {
     this.skipClutter();
@@ -371,6 +386,114 @@
   //
   JsrsParser.prototype.parseString = function() {
     this.skipClutter();
+
+    var quoteStyle = this.lookahead();
+    if (quoteStyle !== '\'' && quoteStyle !== '"') {
+      this.throwUnexpected();
+    }
+
+    var string = '';
+    var escapeMode = false;
+
+    this.advance();
+
+    while (escapeMode || this.lookahead() !== quoteStyle) {
+      var look = this.advance();
+
+      if (escapeMode) {
+        var controlCharacters = {
+          b: '\b', f: '\f', n: '\n',
+          r: '\r', t: '\t', v: '\v'
+        };
+
+        var controlCharacter = controlCharacters[look];
+
+        if (controlCharacter) {
+          string += controlCharacter;
+        } else if (this.isOctalDigit(look)) {
+          this.retreat();
+          string += this.parseOctalEncodedStringCharacter();
+        } else if (look === 'x') {
+          this.retreat();
+          string += this.parseOneByteHexEncodedCharacter();
+        } else if (look === 'u') {
+          this.retreat();
+          string += this.parseTwoByteHexEncodedCharacter();
+        } else {
+          string += look;
+        }
+
+        escapeMode = false;
+      } else if (look === '\\') {
+        escapeMode = true;
+      } else {
+        string += look;
+      }
+    }
+
+    this.match(quoteStyle);
+
+    return string;
+  };
+
+  // Parse the part of an octal escape sequence after backslash and
+  // return the corresponding character
+  //
+  JsrsParser.prototype.parseOctalEncodedStringCharacter = function() {
+    var digits = '';
+
+    for (var count = 0; count < 3; count++) {
+      var look = this.advance();
+      if (!this.isOctalDigit(look)) {
+        this.retreat();
+        break;
+      }
+
+      digits += look;
+    }
+
+    if (digits.length === 0) {
+      this.throwExpected('Octal number');
+    }
+
+    var code = parseInt(digits, 8);
+    return String.fromCodePoint(code);
+  };
+
+  // Parse the part of a hexadecimal escape sequence after backslash and `x` or
+  // `u` character and return the character corresponding to that code
+  //   nibblesCount - count of half-bytes in the escape sequence
+  //
+  JsrsParser.prototype.parseHexEncodedStringCharacter = function(nibblesCount) {
+    var digits = '';
+
+    for (var i = 0; i < nibblesCount; i++) {
+      var look = this.advance();
+      if (!this.isHexadecimalDigit(look)) {
+        this.throwExpected('Hexadecimal digit');
+      }
+
+      digits += look;
+    }
+
+    var code = parseInt(digits, 16);
+    return String.fromCodePoint(code);
+  };
+
+  // Parse the part of a one-byte hexadecimal escape sequence after backslash
+  // and return the corresponding character
+  //
+  JsrsParser.prototype.parseOneByteHexEncodedCharacter = function() {
+    this.match('x');
+    return this.parseHexEncodedStringCharacter(2);
+  };
+
+  // Parse the part of a two-byte hexadecimal escape sequence after backslash
+  // and return the corresponding character
+  //
+  JsrsParser.prototype.parseTwoByteHexEncodedCharacter = function() {
+    this.match('u');
+    return this.parseHexEncodedStringCharacter(4);
   };
 
   // Parse an array
