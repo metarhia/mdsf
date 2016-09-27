@@ -26,7 +26,7 @@
 
   var jsrs = {};
 
-  if (module && module.exports) {
+  if (typeof(module) !== 'undefined' && module.exports) {
     module.exports = jsrs;
   } else {
     if (!window.api) window.api = {};

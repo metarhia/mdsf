@@ -5,7 +5,7 @@ var common = require('../lib/common');
 var jstp = {};
 module.exports = jstp;
 
-loadPlugins(['jsrs']);
+loadPlugins(['jsrs', 'jsos']);
 
 function loadPlugins(plugins) {
   var loadedPlugins = plugins.map(function(plugin) {
