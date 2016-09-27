@@ -212,6 +212,8 @@
 
   // Check if a given character is one of that are allowed
   // in numbers
+  //   character - a character to check
+  //
   JsrsParser.prototype.isDigit = function(character) {
     return (character >= '0' && character <= '9') ||
       (character === '+' || character === '-') ||
@@ -220,17 +222,50 @@
   };
 
   // Check if a given character is an octal digit
+  //   character - a character to check
   //
   JsrsParser.prototype.isOctalDigit = function(character) {
     return character >= '0' && character <= '7';
   };
 
   // Check if a given character is a hexadecimal digit
+  //   character - a character to check
   //
   JsrsParser.prototype.isHexadecimalDigit = function(character) {
     return (character >= '0' && character <= '9') ||
       (character >= 'a' && character <= 'f') ||
       (character >= 'A' && character <= 'F');
+  };
+
+  // Check if a given character is a decimal digit
+  //   character - a character to check
+  //
+  JsrsParser.prototype.isDecimalDigit = function(character) {
+    return character >= '0' && character <= '9';
+  };
+
+  // Check if a given character is a quote character
+  //   character - a character to check
+  //
+  JsrsParser.prototype.isQuoteCharacter = function(character) {
+    return character === '\'' || character === '"';
+  };
+
+  // Check if a given character can be the first character of an identifier
+  //   character - a character to check
+  //
+  JsrsParser.prototype.isInititalIdentifierCharacter = function(character) {
+    return (character >= 'a' && character <= 'z') ||
+      (character >= 'A' && character <= 'Z') ||
+      (character === '_' || character === '$');
+  };
+
+  // Check if a given character can be a part of an identifier
+  //   character - a character to check
+  //
+  JsrsParser.prototype.isIdentifierCharacter = function(character) {
+    return this.isInititalIdentifierCharacter(character) ||
+      this.isDecimalDigit(character);
   };
 
   // Skip whitespace and comments
@@ -306,7 +341,7 @@
       return this.parseNumber();
     } else if (this.isLetter(look)) {
       return this.parseIdentifier();
-    } else if (look === '\'' || look === '"') {
+    } else if (this.isQuoteCharacter(look)) {
       return this.parseString();
     } else if (look === '[') {
       return this.parseArray();
@@ -388,8 +423,8 @@
     this.skipClutter();
 
     var quoteStyle = this.lookahead();
-    if (quoteStyle !== '\'' && quoteStyle !== '"') {
-      this.throwUnexpected();
+    if (!this.isQuoteCharacter(quoteStyle)) {
+      this.throwExpected('String');
     }
 
     var string = '';
@@ -531,6 +566,52 @@
   //
   JsrsParser.prototype.parseObject = function() {
     this.skipClutter();
+
+    var object = {};
+
+    this.match('{');
+
+    while (this.lookahead() !== '}') {
+      var key = this.parseObjectKey();
+      this.match(':');
+      var value = this.parseValue();
+
+      if (value !== undefined) {
+        object[key] = value;
+      }
+
+      this.skipClutter();
+      if (this.lookahead() !== '}') {
+        this.match(',');
+        this.skipClutter();
+      }
+    }
+
+    this.skipClutter();
+    this.match('}');
+
+    return object;
+  };
+
+  // Parse a key of an object
+  //
+  JsrsParser.prototype.parseObjectKey = function() {
+    this.skipClutter();
+
+    if (this.isQuoteCharacter(this.lookahead())) {
+      return this.parseString();
+    }
+
+    if (!this.isInititalIdentifierCharacter(this.lookahead())) {
+      this.throwExpected('String or identifier');
+    }
+
+    var key = '';
+    while (this.isIdentifierCharacter(this.lookahead())) {
+      key += this.advance();
+    }
+
+    return key;
   };
 
 })();
