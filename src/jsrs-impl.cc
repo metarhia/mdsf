@@ -345,6 +345,49 @@ v8::Local<v8::Value> ParseBool(v8::Isolate* isolate, const char* begin,
 
 v8::Local<v8::Value> ParseNumber(v8::Isolate* isolate, const char* begin,
                                  const char* end, std::size_t* size) {
+  bool negate_result = false;
+  const char* number_start = begin;
+
+  if (*begin == '+' || *begin == '-') {
+    negate_result = *begin == '-';
+    number_start++;
+  }
+
+  int base = 10;
+
+  if (*number_start == '0') {
+    number_start++;
+
+    if (IsOctalDigit(*number_start)) {
+      return isolate->ThrowException(v8::Exception::SyntaxError(
+          v8::String::NewFromUtf8(isolate, "Use new octal literal syntax")));
+    } else if (*number_start == 'b') {
+      base = 2;
+      number_start++;
+    } else if (*number_start == 'o') {
+      base = 8;
+      number_start++;
+    } else if (*number_start == 'x') {
+      base = 16;
+      number_start++;
+    } else {
+      number_start--;
+    }
+  }
+
+  if (base == 10) {
+    return ParseDecimalNumber(isolate, begin, end, size);
+  } else {
+    auto value = ParseIntegerNumber(isolate, number_start, end, size,
+                                    base, negate_result);
+    std::size_t offset = static_cast<std::size_t>(number_start - begin);
+    *size += offset;
+    return value;
+  }
+}
+
+v8::Local<v8::Value> ParseDecimalNumber(v8::Isolate* isolate, const char* begin,
+                                        const char* end, std::size_t* size) {
   v8::Local<v8::Number> result = v8::Number::New(isolate, std::atof(begin));
   *size = end - begin;
   std::size_t i = 0;
@@ -352,6 +395,20 @@ v8::Local<v8::Value> ParseNumber(v8::Isolate* isolate, const char* begin,
          i < *size) i++;
   *size = i;
   return result;
+}
+
+v8::Local<v8::Value> ParseIntegerNumber(v8::Isolate* isolate, const char* begin,
+                                        const char* end, std::size_t* size,
+                                        int base, bool negate_result) {
+  char* number_end;
+  int32_t value = std::strtol(begin, &number_end, base);
+  if (negate_result) {
+    value = -value;
+  }
+
+  *size = static_cast<std::size_t>(number_end - begin);
+
+  return v8::Integer::New(isolate, value);
 }
 
 v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,

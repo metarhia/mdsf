@@ -152,7 +152,15 @@ function runAllTests(jstp, title) {
       ['must parse single-quoted keys',
         '{\'key\': 42}', { key: 42 }],
       ['must parse double-quoted keys',
-        '{"key": 42}', { key: 42 }]
+        '{"key": 42}', { key: 42 }],
+      ['must parse binary numbers',
+        '0b1010', 10],
+      ['must parse octal numbers',
+        '0o123', 83],
+      ['must parse hexadecimal numbers', [
+        ['0xff', 0xff],
+        ['0xAF', 0xaf]
+      ]]
     ]);
 
   var baseObjectSerializationTestCase =
@@ -222,6 +230,12 @@ function runAllTests(jstp, title) {
 
         it('must skip undefined values of an object', function() {
           expect(jstp.parse('{value:undefined}')).to.eql({});
+        });
+
+        it('must not allow old octal literals syntax', function() {
+          expect(function() {
+            jstp.parse('0123');
+          }).to.throwError();
         });
       });
     });

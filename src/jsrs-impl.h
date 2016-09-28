@@ -187,6 +187,20 @@ unsigned int ReadHexNumber(const char* str, int len, bool* ok);
 char* GetControlChar(v8::Isolate* isolate, const char* str,
                      std::size_t* res_len, std::size_t* size);
 
+// Checks if a character is an octal digit.
+inline bool IsOctalDigit(char character) {
+  return character >= '0' && character <= '7';
+}
+
+// Parses a decimal number, either integer or float.
+v8::Local<v8::Value> ParseDecimalNumber(v8::Isolate* isolate, const char* begin,
+                                        const char* end, std::size_t* size);
+
+// Parses an integer number in arbitrary base without prefixes.
+v8::Local<v8::Value> ParseIntegerNumber(v8::Isolate* isolate, const char* begin,
+                                        const char* end, std::size_t* size,
+                                        int base, bool negate_result);
+
 }  // namespace deserializer
 
 }  // namespace jsrs

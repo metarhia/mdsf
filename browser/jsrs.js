@@ -236,8 +236,8 @@
   //   character - a character to check
   //
   JsrsParser.prototype.isInitialDigit = function(character) {
-    return (character >= '0' && character <= '9') ||
-      (character === '+' || character === '-') ||
+    return this.isDecimalDigit(character) ||
+      character === '+' || character === '-' ||
       character === '.';
   };
 
@@ -249,11 +249,25 @@
       character === 'e' || character === 'E';
   };
 
+  // Check if a given character is a binary digit
+  //   character - a character to check
+  //
+  JsrsParser.prototype.isBinaryDigit = function(character) {
+    return character === '0' || character === '1';
+  };
+
   // Check if a given character is an octal digit
   //   character - a character to check
   //
   JsrsParser.prototype.isOctalDigit = function(character) {
     return character >= '0' && character <= '7';
+  };
+
+  // Check if a given character is a decimal digit
+  //   character - a character to check
+  //
+  JsrsParser.prototype.isDecimalDigit = function(character) {
+    return character >= '0' && character <= '9';
   };
 
   // Check if a given character is a hexadecimal digit
@@ -263,13 +277,6 @@
     return (character >= '0' && character <= '9') ||
       (character >= 'a' && character <= 'f') ||
       (character >= 'A' && character <= 'F');
-  };
-
-  // Check if a given character is a decimal digit
-  //   character - a character to check
-  //
-  JsrsParser.prototype.isDecimalDigit = function(character) {
-    return character >= '0' && character <= '9';
   };
 
   // Check if a given character is a quote character
@@ -381,11 +388,57 @@
   };
 
   // Parse a number
-  // TODO: binary, octal and hexadecimal numbers
   //
   JsrsParser.prototype.parseNumber = function() {
     this.skipClutter();
 
+    var negateResult = false;
+    var look = this.lookahead();
+
+    if (look === '+' || look === '-') {
+      negateResult = look === '-';
+      this.advance();
+    }
+
+    var base = 10;
+
+    if (this.lookahead() === '0') {
+      this.advance();
+      look = this.lookahead();
+
+      if (this.isDecimalDigit(look)) {
+        this.throwError('Use new octal literals syntax');
+      } else if (look === 'b') {
+        base = 2;
+        this.advance();
+      } else if (look === 'o') {
+        base = 8;
+        this.advance();
+      } else if (look === 'x') {
+        base = 16;
+        this.advance();
+      } else {
+        this.retreat();
+      }
+    }
+
+    var value = base === 10 ?
+      this.parseDecimal() :
+      this.parseMachineInteger(base);
+
+    if (isNaN(value)) {
+      this.throwError('Invalid number format');
+    }
+
+    return negateResult ?
+      -value :
+       value;
+  };
+
+  // Parse a decimal number, either integer or float.
+  // May return NaN when the number is incorrect.
+  //
+  JsrsParser.prototype.parseDecimal = function() {
     var number = '';
 
     var encountered = {  // parseFloat ignores unparsed part of
@@ -402,14 +455,18 @@
       number += this.advance();
     }
 
-    var value = parseFloat(number);
-    if (isNaN(value)) {
-      this.throwError('Invalid number format');
-    }
-
-    return value;
+    return parseFloat(number);
   };
 
+  // Check whether a part of a decimal number that can be used only once
+  // has been encountered before and throw SyntaxError if it indeed has.
+  //   encounterContext - an object with boolean flags
+  //   name - name of the key of the object which value represents the
+  //          entitity being checked
+  //   character - a character to match against the lookahead character
+  //   altCharacter - optional alternative character related to the
+  //                  same enitity
+  //
   JsrsParser.prototype.checkNumberPartEncountered =
     function(encounterContext, name, character, altCharacter) {
       var look = this.lookahead();
@@ -420,6 +477,28 @@
         encounterContext[name] = true;
       }
     };
+
+  // Parse an integer number in binary, octal or hexadecimal representation.
+  // The prefix is not included and must be parsed before invocation.
+  // The function may return NaN when the number is incorrect.
+  //   base - 2, 8 or 16
+  //
+  JsrsParser.prototype.parseMachineInteger = function(base) {
+    var self = this;
+    var checkers = {
+      2:  self.isBinaryDigit,
+      8:  self.isOctalDigit,
+      16: self.isHexadecimalDigit
+    };
+    var checkDigit = checkers[base];
+
+    var number = '';
+    while (checkDigit(this.lookahead())) {
+      number += this.advance();
+    }
+
+    return parseInt(number, base);
+  };
 
   // Parse null, undefined, true or false
   //
