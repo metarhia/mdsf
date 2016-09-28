@@ -232,15 +232,21 @@
     return character >= 'a' && character <= 'z';
   };
 
-  // Check if a given character is one of that are allowed
-  // in numbers
+  // Check if a given character can be the first character in a number
+  //   character - a character to check
+  //
+  JsrsParser.prototype.isInitialDigit = function(character) {
+    return (character >= '0' && character <= '9') ||
+      (character === '+' || character === '-') ||
+      character === '.';
+  };
+
+  // Check if a given character is one of that are allowed in numbers
   //   character - a character to check
   //
   JsrsParser.prototype.isDigit = function(character) {
-    return (character >= '0' && character <= '9') ||
-      (character === '+' || character === '-') ||
-      (character === 'e' || character === 'E') ||
-      character === '.';
+    return this.isInitialDigit(character) ||
+      character === 'e' || character === 'E';
   };
 
   // Check if a given character is an octal digit
@@ -359,7 +365,7 @@
     this.skipClutter();
 
     var look = this.lookahead();
-    if (/[\d+-.]/.test(look)) {
+    if (this.isInitialDigit(look)) {
       return this.parseNumber();
     } else if (this.isLetter(look)) {
       return this.parseIdentifier();
