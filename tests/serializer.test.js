@@ -158,7 +158,7 @@ function runAllTests(jstp, title) {
   var baseObjectSerializationTestCase =
     skipFunctionTests(recordSerializationTestCase);
 
-  var additionalObjectSerializtionTestCase = [
+  var additionalObjectSerializationTestCase = [
     ['must serialize dates',
       new Date(1473249597286), 'new Date(\'2016-09-07T11:59:57.286Z\')'],
     ['must correctly serialize a complex object',
@@ -169,7 +169,7 @@ function runAllTests(jstp, title) {
     skipFunctionTests(recordDeserializationTestCase);
 
   var additionalObjectDeserializationTestCase =
-    swapTestCase(additionalObjectSerializtionTestCase);
+    swapTestCase(additionalObjectSerializationTestCase);
 
   function testSyntaxError(parseFunction) {
     it('must throw error on illegal input', function() {
@@ -229,7 +229,7 @@ function runAllTests(jstp, title) {
     describe(title + ' Object Serialization', function() {
       describe('jstp.dump', function() {
         runTestCase('dump', baseObjectSerializationTestCase);
-        runTestCase('dump', additionalObjectSerializtionTestCase);
+        runTestCase('dump', additionalObjectSerializationTestCase);
       });
       describe('jstp.interprete', function() {
         runTestCase('interprete', baseObjectDeserializationTestCase);
