@@ -85,7 +85,20 @@
     },
 
     array: function(array) {
-      return '[' + array.map(jsrs.stringify).join(',') + ']';
+      var result = '[';
+
+      for (var index = 0; index < array.length; index++) {
+        var value = array[index];
+        if (value !== undefined) {
+          result += jsrs.stringify(value);
+        }
+
+        if (index !== array.length - 1) {
+          result += ',';
+        }
+      }
+
+      return result + ']';
     },
 
     object: function(object) {
