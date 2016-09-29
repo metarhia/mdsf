@@ -169,7 +169,6 @@ const char* GetEscapedControlChar(char str, std::size_t* size) {
   *size = 2;
 
   switch (str) {
-    case '\a': return "\\a";
     case '\b': return "\\b";
     case '\f': return "\\f";
     case '\n': return "\\n";
@@ -505,7 +504,6 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
   *res_len = 1;
   bool ok;
   switch (str[0]) {
-    case 'a': *result = '\a'; break;
     case 'b': *result = '\b'; break;
     case 'f': *result = '\f'; break;
     case 'n': *result = '\n'; break;
