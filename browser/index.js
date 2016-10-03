@@ -5,7 +5,7 @@ var common = require('../lib/common');
 var jstp = {};
 module.exports = jstp;
 
-loadPlugins(['record-serialization', 'object-serialization']);
+loadPlugins(['jstp-serializer']);
 
 function loadPlugins(plugins) {
   var loadedPlugins = plugins.map(function(plugin) {

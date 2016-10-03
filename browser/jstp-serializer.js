@@ -1,4 +1,4 @@
-// JavaScript Transfer Protocol JavaScript Record Serialization
+// JavaScript Transfer Protocol Serializer and Parser
 //
 // Copyright (c) 2016 Alexey Orlenko and other JSTP contributors
 //
@@ -24,119 +24,153 @@
 
 (function() {
 
-  var jsrs = {};
+  var jstp = {};
+  var vm;
 
   if (typeof(module) !== 'undefined' && module.exports) {
-    module.exports = jsrs;
+    module.exports = jstp;
   } else {
     if (!window.api) window.api = {};
     if (!window.api.jstp) window.api.jstp = {};
-    jsrs = window.api.jstp;
+    jstp = window.api.jstp;
   }
+
+  // ---------------------------------------------------------------------------
+  // Serializer factory
+  // ---------------------------------------------------------------------------
+
+  var extendObject = Object.assign;
+
+  if (extendObject === undefined) {
+    if (typeof(require) !== 'undefined') {
+      extendObject = require('../lib/common').extend;
+    } else {
+      console.error('You need a polyfill for Object.assign');
+    }
+  }
+
+  // Create a serializer function that takes a JavaScript object and returns its
+  // string representation. By default the behaviour of this function will be
+  // compliant with the JSTP Record Serialization format but you can override it
+  // or supply additional types support using the optional argument of this
+  // factory function.
+  //   additionalTypes - an object with keys which names specify data types and
+  //                     values that are functions that serialize values of
+  //                     the corresponding types
+  //
+  function createSerializer(additionalTypes) {
+    function serialize(object) {
+      var type;
+      if (Array.isArray(object)) {
+        type = 'array';
+      } else if (object instanceof Date) {
+        type = 'date';
+      } else if (object === null) {
+        type = 'null';
+      } else {
+        type = typeof(object);
+      }
+
+      var serializer = serialize.types[type];
+      if (serializer) {
+        return serializer(object);
+      }
+
+      return '';
+    }
+
+    serialize.types = {
+      number: function(number) {
+        return number + '';
+      },
+
+      boolean: function(bool) {
+        return bool ? 'true' : 'false';
+      },
+
+      undefined: function() {
+        return 'undefined';
+      },
+
+      null: function() {
+        return 'null';
+      },
+
+      string: function(string) {
+        var content = JSON.stringify(string).slice(1, -1);
+        return '\'' + content.replace(/'/g, '\\\'') + '\'';
+      },
+
+      date: function(date) {
+        return '\'' + date.toISOString() + '\'';
+      },
+
+      array: function(array) {
+        var result = '[';
+
+        for (var index = 0; index < array.length; index++) {
+          var value = array[index];
+          if (value !== undefined) {
+            result += serialize(value);
+          }
+
+          if (index !== array.length - 1) {
+            result += ',';
+          }
+        }
+
+        return result + ']';
+      },
+
+      object: function(object) {
+        var result = '{';
+        var firstKey = true;
+
+        for (var key in object) {
+          if (!object.hasOwnProperty(key)) {
+            continue;
+          }
+
+          var value = serialize(object[key]);
+          if (value === '' || value === 'undefined') {
+            continue;
+          }
+
+          if (!/[a-zA-Z_]\w*/.test(key)) {
+            key = serialize.types.string(key);
+          }
+
+          if (firstKey) {
+            firstKey = false;
+          } else {
+            result += ',';
+          }
+
+          result += key + ':' + value;
+        }
+
+        return result + '}';
+      }
+    };
+
+    extendObject(serialize.types, additionalTypes);
+    return serialize;
+  }
+
+  // ---------------------------------------------------------------------------
+  // JSTP Record Serialization
+  // ---------------------------------------------------------------------------
 
   // Serialize a JavaScript value using the JSTP Record Serialization format
   // and return a string representing it.
-  //   object - an object to serialize
   //
-  jsrs.stringify = function stringify(object) {
-    var type;
-    if (Array.isArray(object)) {
-      type = 'array';
-    } else if (object instanceof Date) {
-      type = 'date';
-    } else if (object === null) {
-      type = 'null';
-    } else {
-      type = typeof(object);
-    }
-
-    var serializer = jsrs.stringify.types[type];
-    if (serializer) {
-      return serializer(object);
-    }
-
-    return '';
-  };
-
-  jsrs.stringify.types = {
-    number: function(number) {
-      return number + '';
-    },
-
-    boolean: function(bool) {
-      return bool ? 'true' : 'false';
-    },
-
-    undefined: function() {
-      return 'undefined';
-    },
-
-    null: function() {
-      return 'null';
-    },
-
-    string: function(string) {
-      var content = JSON.stringify(string).slice(1, -1);
-      return '\'' + content.replace(/'/g, '\\\'') + '\'';
-    },
-
-    date: function(date) {
-      return '\'' + date.toISOString() + '\'';
-    },
-
-    array: function(array) {
-      var result = '[';
-
-      for (var index = 0; index < array.length; index++) {
-        var value = array[index];
-        if (value !== undefined) {
-          result += jsrs.stringify(value);
-        }
-
-        if (index !== array.length - 1) {
-          result += ',';
-        }
-      }
-
-      return result + ']';
-    },
-
-    object: function(object) {
-      var result = '{';
-      var firstKey = true;
-
-      for (var key in object) {
-        if (!object.hasOwnProperty(key)) {
-          continue;
-        }
-
-        var value = jsrs.stringify(object[key]);
-        if (value === '' || value === 'undefined') {
-          continue;
-        }
-
-        if (!/[a-zA-Z_]\w*/.test(key)) {
-          key = jsrs.stringify.types.string(key);
-        }
-
-        if (firstKey) {
-          firstKey = false;
-        } else {
-          result += ',';
-        }
-
-        result += key + ':' + value;
-      }
-
-      return result + '}';
-    }
-  };
+  jstp.stringify = createSerializer();
 
   // Deserialize a string in the JSTP Record Serialization format into
   // a JavaScript value and return it.
   //   string - a string to parse
   //
-  jsrs.parse = function parse(string) {
+  jstp.parse = function parse(string) {
     var parser = new JsrsParser(string);
     return parser.parse();
   };
@@ -732,6 +766,135 @@
     }
 
     return key;
+  };
+
+  // ---------------------------------------------------------------------------
+  // JSTP Object Serialization
+  // ---------------------------------------------------------------------------
+
+  // Serialize a JavaScript object into a string in the JSTP Object
+  // Serialization format
+  //
+  jstp.dump = createSerializer({
+    date: function(date) {
+      var string = date.toISOString();
+      return 'new Date(\'' + string + '\')';
+    },
+
+    function: function(fn) {
+      return fn.toString();
+    }
+  });
+
+  // Deserialize a string in the JSTP Object Serialization format into
+  // a JavaScript value and return it.
+  //   string - a string to parse
+  //
+  jstp.interprete = function interprete(string) {
+    var sandbox = createSandbox();
+    var exported = sandbox.eval('"use strict";(' + string + ')');
+
+    sandbox.addProperties(exported);
+
+    return exported;
+  };
+
+  // Sandbox factory function
+  //
+  // Returns an instance of a class implementing the following interface:
+  //   {
+  //     addProperties(object) { ... }
+  //     eval(code) { ... }
+  //     destroy() { ... }
+  //   }
+  //
+  function createSandbox() {
+    if (!createSandbox.CachedClass) {
+      if (isBrowser()) {
+        createSandbox.CachedClass = BrowserSandbox;
+      } else {
+        vm = require('vm');
+        createSandbox.CachedClass = NodeSandbox;
+      }
+    }
+
+    return new createSandbox.CachedClass();
+  }
+
+  // Check if the code is running under browser environment
+  //
+  function isBrowser() {
+    return typeof(window) !== 'undefined';
+  }
+
+  // Sandbox class used for parsing in browser
+  //   context - optional hash of properties to add to sandbox context
+  //
+  function BrowserSandbox() {
+    this.iframe = document.createElement('iframe');
+    this.iframe.style.display = 'none';
+    this.iframe.sandbox = 'allow-same-origin allow-scripts';
+
+    document.body.appendChild(this.iframe);
+  }
+
+  // Add properties of an object to the sandbox context
+  //   obj - a hash of properties
+  //
+  BrowserSandbox.prototype.addProperties = function(object) {
+    for (var key in object) {
+      if (!object.hasOwnProperty(key)) {
+        continue;
+      }
+
+      this.iframe.contentWindow[key] = object[key];
+    }
+  };
+
+  // Remove the sandbox from DOM
+  //
+  BrowserSandbox.prototype.destroy = function() {
+    document.body.removeChild(this.iframe);
+  };
+
+  // Evaluate JavaScript code in the sandbox
+  //
+  BrowserSandbox.prototype.eval = function(code) {
+    return this.iframe.contentWindow.eval(code);
+  };
+
+  // Sandbox class used for parsing in Node.js
+  //   context - optional hash of properties to add to sandbox context
+  //
+  function NodeSandbox() {
+    this.context = vm.createContext({});
+  }
+
+  // Add properties of an object to the sandbox context
+  //   obj - a hash of properties
+  //
+  NodeSandbox.prototype.addProperties = function(object) {
+    for (var key in object) {
+      if (!object.hasOwnProperty(key)) {
+        continue;
+      }
+
+      this.context[key] = object[key];
+    }
+  };
+
+  // Destory the sandbox
+  //
+  NodeSandbox.prototype.destroy = function() {
+    delete this.context;
+  };
+
+  // Evaluate JavaScript code in the sandbox
+  //
+  NodeSandbox.prototype.eval = function(code) {
+    return vm.runInNewContext(code, this.context, {
+      timeout: 30
+    });
   };
 
 })();
