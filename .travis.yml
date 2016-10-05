@@ -35,7 +35,6 @@ addons:
     packages:
       - g++-6
 before_script:
-  - export CHROME_BIN="chromium-browser --no-sandbox"
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
 script:
