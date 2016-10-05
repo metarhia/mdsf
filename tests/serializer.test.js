@@ -163,7 +163,9 @@ var recordDeserializationTestCase =
     ['must parse hexadecimal numbers', [
       ['0xff', 0xff],
       ['0xAF', 0xaf]
-    ]]
+    ]],
+    ['must parse Unicode code point escapes',
+      '\'\\u{1F49A}\\u{1F49B}\'', '💚💛']
   ]);
 
 var baseObjectSerializationTestCase =
