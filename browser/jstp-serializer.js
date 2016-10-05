@@ -643,7 +643,7 @@
           string += this.parseOneByteHexEncodedCharacter();
         } else if (look === 'u') {
           this.retreat();
-          string += this.parseTwoByteHexEncodedCharacter();
+          string += this.parseUnicodeCharacter();
         } else {
           string += look;
         }
@@ -719,6 +719,47 @@
   JsrsParser.prototype.parseTwoByteHexEncodedCharacter = function() {
     this.match('u');
     return this.parseHexEncodedStringCharacter(4);
+  };
+
+  // Parse a Unicode escape sequence after backslash and return the
+  // corresponding character
+  //
+  JsrsParser.prototype.parseUnicodeCharacter = function() {
+    this.match('u');
+
+    if (this.lookahead() === '{') {
+      return this.parseEs6UnicodeLiteral();
+    } else {
+      this.retreat();
+      return this.parseTwoByteHexEncodedCharacter();
+    }
+  };
+
+  // Parse an ES2015 multibyte Unicode escape sequence after backslash and `u`
+  // character
+  //
+  JsrsParser.prototype.parseEs6UnicodeLiteral = function() {
+    this.match('{');
+
+    var hexDigits = '';
+
+    while (this.lookahead() !== '}') {
+      var digit = this.advance();
+      if (!this.isHexadecimalDigit(digit)) {
+        this.throwExpected('Hexadecimal digit');
+      }
+
+      hexDigits += digit;
+    }
+
+    if (hexDigits.length === 0 || hexDigits.length > 8) {
+      this.throwError('Invalid code point');
+    }
+
+    this.match('}');
+
+    var code = parseInt(hexDigits, 16);
+    return String.fromCodePoint(code);
   };
 
   // Parse an array
