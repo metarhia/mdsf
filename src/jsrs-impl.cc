@@ -464,7 +464,7 @@ char* CodePointsToUtf8(unsigned int c, std::size_t* size) {
     *size = 2;
   } else if (c - 0xd800u < 0x800) {
     delete []result;
-    return nullptr;
+    return CodePointsToUtf8(0xFFFD, size);
   } else if (c < 0x10000) {
      *b++ = 224 + c / 4096;
      *b++ = 128 + c / 64 % 64;
@@ -478,7 +478,7 @@ char* CodePointsToUtf8(unsigned int c, std::size_t* size) {
      *size = 4;
   } else {
     delete []result;
-    return nullptr;
+    return CodePointsToUtf8(0xFFFD, size);
   }
   return result;
 }
@@ -526,22 +526,28 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
       break;
     }
     case 'u': {
-      unsigned int symb_code = ReadHexNumber(str + 1, 4, &ok);
+      unsigned int symb_code;
+      if (isxdigit(str[1])) {
+        symb_code = ReadHexNumber(str + 1, 4, &ok);
+        *size = 5;
+      } else if (str[1] == '{') {
+        std::size_t hex_size; // maximal hex is 10FFFF
+        for (hex_size = 1; str[hex_size + 2] != '}' && hex_size <= 6;
+            hex_size++);
+        symb_code = ReadHexNumber(str + 2, hex_size, &ok);
+        *size = hex_size + 3;
+      } else {
+        ok = false;
+      }
       if (!ok) {
         isolate->ThrowException(v8::Exception::SyntaxError(
             v8::String::NewFromUtf8(isolate,
                 "Invalid Unicode escape sequence")));
         return nullptr;
       }
-      char* unicodeSymbol = CodePointsToUtf8(symb_code, res_len);
-      if (!unicodeSymbol) {
-        isolate->ThrowException(v8::Exception::SyntaxError(
-            v8::String::NewFromUtf8(isolate, "Unknown Unicode symbol")));
-        return nullptr;
-      }
-      *size = 5;
+      char* unicode_symbol = CodePointsToUtf8(symb_code, res_len);
       delete []result;
-      return unicodeSymbol;
+      return unicode_symbol;
     }
     default:
       isolate->ThrowException(v8::Exception::SyntaxError(
