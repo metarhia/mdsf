@@ -29,12 +29,9 @@ module.exports = function(config) {
       enabled: true,
       usePhantomJS: false,
       postDetection: function(browsers) {
-        if (process.env.TRAVIS) {
-          return browsers.filter(function(browser) {
-            return !browser.startsWith('Chrome');
-          });
-        }
-        return browsers;
+        return process.env.TRAVIS ?
+          ['Firefox'] :
+          browsers;
       }
     },
     singleRun: true,
