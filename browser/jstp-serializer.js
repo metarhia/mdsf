@@ -25,7 +25,6 @@
 (function() {
 
   var jstp = {};
-  var vm;
 
   if (typeof(module) !== 'undefined' && module.exports) {
     module.exports = jstp;
@@ -38,16 +37,6 @@
   // ---------------------------------------------------------------------------
   // Serializer factory
   // ---------------------------------------------------------------------------
-
-  var extendObject = Object.assign;
-
-  if (extendObject === undefined) {
-    if (typeof(require) !== 'undefined') {
-      extendObject = require('../lib/common').extend;
-    } else {
-      console.error('You need a polyfill for Object.assign');
-    }
-  }
 
   // Create a serializer function that takes a JavaScript object and returns its
   // string representation. By default the behaviour of this function will be
@@ -155,6 +144,53 @@
 
     extendObject(serialize.types, additionalTypes);
     return serialize;
+  }
+
+  // Populate a target object with all the properties
+  // of arbitrary number of other objects
+  // Signature:
+  //   common.extend(target, ...sources);
+  // Parameters:
+  //   target - object to copy properties into
+  //   ...sources - source objects
+  //
+  function extendObject(target) {
+    if (isNull(target)) {
+      throw new TypeError('Cannot convert undefined or null to object');
+    }
+
+    if (typeof(target) !== 'object') {
+      target = new Object(target);
+    }
+
+    var sources = Array.prototype.slice
+      .call(arguments, 1)
+      .filter(function(source) {
+        return !isNull(source);
+      });
+
+    sources.forEach(function(source) {
+      for (var key in source) {
+        if (!source.hasOwnProperty(key)) {
+          continue;
+        }
+        target[key] = source[key];
+      }
+    });
+
+    return target;
+  }
+
+  // Check if a value is null or undefined
+  //   value - a value to check
+  //
+  function isNull(value) {
+    return value === null || value === undefined;
+  }
+
+  if (Object.assign) {
+    // eslint-disable-next-line no-func-assign
+    extendObject = Object.assign;
   }
 
   // ---------------------------------------------------------------------------
@@ -646,7 +682,7 @@
     }
 
     var code = parseInt(digits, 8);
-    return String.fromCodePoint(code);
+    return String.fromCharCode(code);
   };
 
   // Parse the part of a hexadecimal escape sequence after backslash and `x` or
@@ -666,7 +702,7 @@
     }
 
     var code = parseInt(digits, 16);
-    return String.fromCodePoint(code);
+    return String.fromCharCode(code);
   };
 
   // Parse the part of a one-byte hexadecimal escape sequence after backslash
@@ -791,46 +827,20 @@
   //   string - a string to parse
   //
   jstp.interprete = function interprete(string) {
-    var sandbox = createSandbox();
+    var sandbox = new Sandbox();
     var exported = sandbox.eval('"use strict";(' + string + ')');
 
-    sandbox.addProperties(exported);
+    if (typeof(exported) === 'object' && !Array.isArray(exported)) {
+      sandbox.addProperties(exported);
+    }
 
     return exported;
   };
 
-  // Sandbox factory function
-  //
-  // Returns an instance of a class implementing the following interface:
-  //   {
-  //     addProperties(object) { ... }
-  //     eval(code) { ... }
-  //     destroy() { ... }
-  //   }
-  //
-  function createSandbox() {
-    if (!createSandbox.CachedClass) {
-      if (isBrowser()) {
-        createSandbox.CachedClass = BrowserSandbox;
-      } else {
-        vm = require('vm');
-        createSandbox.CachedClass = NodeSandbox;
-      }
-    }
-
-    return new createSandbox.CachedClass();
-  }
-
-  // Check if the code is running under browser environment
-  //
-  function isBrowser() {
-    return typeof(window) !== 'undefined';
-  }
-
   // Sandbox class used for parsing in browser
   //   context - optional hash of properties to add to sandbox context
   //
-  function BrowserSandbox() {
+  function Sandbox() {
     this.iframe = document.createElement('iframe');
     this.iframe.style.display = 'none';
     this.iframe.sandbox = 'allow-same-origin allow-scripts';
@@ -841,7 +851,7 @@
   // Add properties of an object to the sandbox context
   //   obj - a hash of properties
   //
-  BrowserSandbox.prototype.addProperties = function(object) {
+  Sandbox.prototype.addProperties = function(object) {
     for (var key in object) {
       if (!object.hasOwnProperty(key)) {
         continue;
@@ -853,48 +863,14 @@
 
   // Remove the sandbox from DOM
   //
-  BrowserSandbox.prototype.destroy = function() {
+  Sandbox.prototype.destroy = function() {
     document.body.removeChild(this.iframe);
   };
 
   // Evaluate JavaScript code in the sandbox
   //
-  BrowserSandbox.prototype.eval = function(code) {
+  Sandbox.prototype.eval = function(code) {
     return this.iframe.contentWindow.eval(code);
-  };
-
-  // Sandbox class used for parsing in Node.js
-  //   context - optional hash of properties to add to sandbox context
-  //
-  function NodeSandbox() {
-    this.context = vm.createContext({});
-  }
-
-  // Add properties of an object to the sandbox context
-  //   obj - a hash of properties
-  //
-  NodeSandbox.prototype.addProperties = function(object) {
-    for (var key in object) {
-      if (!object.hasOwnProperty(key)) {
-        continue;
-      }
-
-      this.context[key] = object[key];
-    }
-  };
-
-  // Destory the sandbox
-  //
-  NodeSandbox.prototype.destroy = function() {
-    delete this.context;
-  };
-
-  // Evaluate JavaScript code in the sandbox
-  //
-  NodeSandbox.prototype.eval = function(code) {
-    return vm.runInNewContext(code, this.context, {
-      timeout: 30
-    });
   };
 
 })();
