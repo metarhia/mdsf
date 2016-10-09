@@ -1,4 +1,4 @@
-/* global describe it api */
+/* global api */
 'use strict';
 
 var jstp;
