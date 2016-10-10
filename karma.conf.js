@@ -9,7 +9,7 @@ module.exports = function(config) {
       'detectBrowsers'
     ],
     files: [
-      'browser/jstp-serializer.js',
+      'dist/jstp.min.js',
       'tests/serializer.test.js'
     ],
     exclude: [],
