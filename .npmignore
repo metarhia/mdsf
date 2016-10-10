@@ -1,5 +1,4 @@
-# Node.js and NPM
-node_modules
+# Logs and dumps
 *.log
 *.cpuprofile
 *.heapsnapshot
@@ -12,12 +11,8 @@ dev/
 .color_coded
 .idea/
 
-# OS-specific files
-.DS_Store
-
-# node-gyp and webpack build
+# node-gyp build
 build/
-dist/
 
 # Python bytecode
 *.pyc
