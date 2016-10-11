@@ -448,8 +448,10 @@ v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
     v8::String::NewFromUtf8(isolate, "Error while parsing string")));
     return v8::String::Empty(isolate);
   }
-  return v8::String::NewFromUtf8(isolate, result, v8::NewStringType::kNormal,
-                                 res_index).ToLocalChecked();
+  v8::Local<v8::String> result_str = v8::String::NewFromUtf8(isolate, result,
+    v8::NewStringType::kNormal, res_index).ToLocalChecked();
+  delete []result;
+  return result_str;
 }
 
 char* CodePointsToUtf8(unsigned int c, std::size_t* size) {
@@ -531,9 +533,9 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
         symb_code = ReadHexNumber(str + 1, 4, &ok);
         *size = 5;
       } else if (str[1] == '{') {
-        std::size_t hex_size; // maximal hex is 10FFFF
+        std::size_t hex_size;  // maximal hex is 10FFFF
         for (hex_size = 1; str[hex_size + 2] != '}' && hex_size <= 6;
-            hex_size++);
+            hex_size++) continue;
         symb_code = ReadHexNumber(str + 2, hex_size, &ok);
         *size = hex_size + 3;
       } else {
