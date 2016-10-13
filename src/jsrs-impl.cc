@@ -264,7 +264,7 @@ v8::Local<v8::Value> Parse(v8::Isolate* isolate,
         v8::String::NewFromUtf8(isolate, "Invalid format")));
     return v8::Undefined(isolate);
   }
-  delete[] to_parse;
+  delete []to_parse;
   return result;
 }
 
