@@ -6,6 +6,7 @@ module.exports = function(config) {
     frameworks: [
       'mocha',
       'expect',
+      'sinon',
       'detectBrowsers'
     ],
     files: [
