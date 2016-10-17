@@ -7,11 +7,13 @@ var webpack = require('webpack');
 var license = fs.readFileSync(path.join(__dirname, 'LICENSE')).toString();
 
 module.exports = {
-  entry: './browser-entry',
+  entry: './jstp',
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'jstp.min.js',
-    sourceMapFilename: 'jstp.min.js.map'
+    sourceMapFilename: 'jstp.min.js.map',
+    libraryTarget: 'assign',
+    library: ['api', 'jstp']
   },
   devtool: 'source-map',
   node: {
