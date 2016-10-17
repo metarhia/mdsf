@@ -13,7 +13,8 @@ module.exports = function(config) {
       'dist/jstp.min.js',
       'tests/serializer.test.js',
       'tests/remote-error.test.js',
-      'tests/remote-proxy.test.js'
+      'tests/remote-proxy.test.js',
+      'tests/connection.test.js'
     ],
     exclude: [],
     preprocessors: {},
