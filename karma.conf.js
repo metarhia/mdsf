@@ -12,7 +12,8 @@ module.exports = function(config) {
     files: [
       'dist/jstp.min.js',
       'tests/serializer.test.js',
-      'tests/remote-error.test.js'
+      'tests/remote-error.test.js',
+      'tests/remote-proxy.test.js'
     ],
     exclude: [],
     preprocessors: {},
