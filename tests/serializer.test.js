@@ -1,14 +1,8 @@
-/* global api */
 'use strict';
 
-var jstp;
+var expect = require('chai').expect;
 
-if (typeof(require) === 'undefined') {
-  jstp = api.jstp;
-} else {
-  jstp = require('..');
-  var expect = require('expect.js');
-}
+var jstp = require('..');
 
 function runTestCase(testFunction, testCase) {
   testCase.forEach(function(test) {
@@ -193,7 +187,7 @@ function testSyntaxError(parseFunction) {
     ].map(function(input) {
       return jstp[parseFunction].bind(null, input);
     }).forEach(function(fn) {
-      expect(fn).to.throwError();
+      expect(fn).to.throw();
     });
   });
 }
@@ -227,7 +221,7 @@ describe('JSTP Serializer and Deserializer', function() {
         ].map(function(input) {
           return jstp.parse.bind(null, input);
         }).forEach(function(fn) {
-          expect(fn).to.throwError();
+          expect(fn).to.throw();
         });
       });
 
@@ -240,7 +234,7 @@ describe('JSTP Serializer and Deserializer', function() {
       it('must not allow old octal literals syntax', function() {
         expect(function() {
           jstp.parse('0123');
-        }).to.throwError();
+        }).to.throw();
       });
     });
   });

@@ -5,20 +5,18 @@ module.exports = function(config) {
     basePath: '',
     frameworks: [
       'mocha',
-      'expect',
-      'sinon',
       'detectBrowsers'
     ],
     files: [
-      'dist/jstp.min.js',
-      'tests/serializer.test.js',
-      'tests/remote-error.test.js',
-      'tests/remote-proxy.test.js',
-      'tests/connection.test.js'
+      { pattern: 'tests/*.test.js', watched: false },
+      { pattern: 'tests/**/*.test.js', watched: false }
     ],
     exclude: [],
-    preprocessors: {},
-    reporters: ['dots'],
+    preprocessors: {
+      'tests/*.test.js': ['webpack'],
+      'tests/**/*.test.js': ['webpack']
+    },
+    reporters: ['mocha'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
@@ -37,6 +35,10 @@ module.exports = function(config) {
           ['Firefox'] :
           browsers;
       }
+    },
+    webpack: { },
+    webpackMiddleware: {
+      stats: 'errors-only'
     },
     singleRun: true,
     concurrency: Infinity
