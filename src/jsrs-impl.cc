@@ -708,7 +708,10 @@ v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
     if (valid) {
       t = kParseFunctions[current_type](isolate,
           begin + i, end, &current_length);
-      array->Set(current_element++, t);
+      if (!(current_type == Type::kUndefined &&
+            begin[i] == ']')) {
+        array->Set(current_element++, t);
+      }
       i += current_length;
 
       current_length = 0;
