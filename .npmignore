@@ -16,3 +16,6 @@ build/
 
 # Python bytecode
 *.pyc
+
+# Examples
+examples/
