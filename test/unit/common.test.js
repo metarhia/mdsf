@@ -5,7 +5,7 @@ var events = require('events');
 var chai = require('chai');
 var chaiSpies = require('chai-spies');
 
-var common = require('../lib/common');
+var common = require('../../lib/common');
 
 chai.use(chaiSpies);
 var expect = chai.expect;

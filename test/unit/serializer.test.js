@@ -2,7 +2,7 @@
 
 var expect = require('chai').expect;
 
-var jstp = require('..');
+var jstp = require('../..');
 
 function runTestCase(testFunction, testCase) {
   testCase.forEach(function(test) {
