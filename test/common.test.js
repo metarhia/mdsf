@@ -1,10 +1,17 @@
 'use strict';
 
-var expect = require('chai').expect;
+var events = require('events');
+
+var chai = require('chai');
+var chaiSpies = require('chai-spies');
+
 var common = require('../lib/common');
 
+chai.use(chaiSpies);
+var expect = chai.expect;
+
 describe('Common functions library', function() {
-  describe('common.extend', function() {
+  describe('extend', function() {
     var sampleObject;
     var biggerObject;
 
