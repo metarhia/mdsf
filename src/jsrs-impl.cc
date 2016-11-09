@@ -276,7 +276,9 @@ const char* PrepareString(const char* str, std::size_t length) {
   enum { kDisabled = 0, kOneline, kMultiline } comment_mode = kDisabled;
   std::size_t j = 0;
   for (std::size_t i = 0; i < length; i++) {
-    if ((str[i] == '\"' || str[i] == '\'') && (i == 0 || str[i - 1] != '\\')) {
+    if ((comment_mode == kDisabled) &&
+        (str[i] == '\"' || str[i] == '\'') &&
+        (i == 0 || str[i - 1] != '\\')) {
       string_mode = !string_mode;
     }
     if (!string_mode) {
