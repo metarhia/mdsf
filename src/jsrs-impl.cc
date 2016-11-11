@@ -595,6 +595,7 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
           return v8::Object::New(isolate);
         }
       } else if (begin[i] == '}') {
+        *size = 2;
         return object;  // In case of empty object
       } else {
         isolate->ThrowException(v8::Exception::SyntaxError(
