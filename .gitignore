@@ -19,5 +19,8 @@ dev/
 build/
 dist/
 
+# Built docs
+site/
+
 # Python bytecode
 *.pyc
