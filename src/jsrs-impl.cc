@@ -595,13 +595,12 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
           return v8::Object::New(isolate);
         }
       } else if (begin[i] == '}') {
-        if (begin[i - 1] != ',') {
+        if (begin[i - 1] != ',') { // In case of empty object
           *size = 2;
-          return object;  // In case of empty object
         } else {
           *size = i + 1;
-          return object;
         }
+        return object;
       } else {
         isolate->ThrowException(v8::Exception::SyntaxError(
             v8::String::NewFromUtf8(isolate,
