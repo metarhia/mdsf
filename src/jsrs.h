@@ -40,6 +40,12 @@ v8::Local<v8::String> Stringify(v8::Isolate* isolate,
 v8::Local<v8::Value> Parse(v8::Isolate* isolate,
     const v8::String::Utf8Value& in);
 
+// Efficiently parses JSTP packets for transports that require packet
+// delimiters eliminating the need to split the stream data into parts before
+// parsing and allowing to do that in one pass.
+v8::Local<v8::String> ParseNetworkPackets(v8::Isolate* isolate,
+    const v8::String::Utf8Value& in, v8::Local<v8::Array> out);
+
 namespace bindings {
 
 // JavaScript binding to jstp::jsrs::Stringify.
@@ -47,6 +53,9 @@ void Stringify(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 // JavaScript binding to jstp::jsrs::Parse.
 void Parse(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+// JavaScript binding to jstp::jsrs::ParseNetworkPackets.
+void ParseNetworkPackets(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 }  // namespace bindings
 

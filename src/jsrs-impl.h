@@ -166,7 +166,8 @@ constexpr static v8::Local<v8::Value> (*kParseFunctions[])(v8::Isolate*,
 static const std::size_t kMaxKeyLength = 256;
 
 // Prepares a source string for parsing throwing out whitespace and comments.
-const char* PrepareString(const char* str, std::size_t length);
+const char* PrepareString(const char* str,
+    std::size_t length, std::size_t* new_length);
 
 // Parses the type of the serialized JavaScript value at the position `begin`
 // and before `end`. Returns true if it was able to detect the type, false

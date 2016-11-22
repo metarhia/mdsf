@@ -248,39 +248,80 @@ bool IsValidKey(v8::Isolate* isolate, const v8::String::Utf8Value& key) {
 
 v8::Local<v8::Value> Parse(v8::Isolate* isolate,
       const v8::String::Utf8Value& in) {
-  const char* to_parse = deserializer::PrepareString(*in, in.length());
+  std::size_t size;
+  const char* to_parse = deserializer::PrepareString(*in, in.length(), &size);
+
   deserializer::Type type;
-  std::size_t size = strlen(to_parse);
   if (!deserializer::GetType(to_parse, to_parse + size, &type)) {
     isolate->ThrowException(v8::Exception::TypeError(
         v8::String::NewFromUtf8(isolate, "Invalid type")));
     return v8::Undefined(isolate);
   }
+
+  std::size_t parsed_size = 0;
   v8::Local<v8::Value> result =
       (deserializer::kParseFunctions[type])(isolate, to_parse,
-                                            to_parse + size, &size);
-  if (size != strlen(to_parse)) {
+                                            to_parse + size, &parsed_size);
+  if (size != parsed_size) {
     isolate->ThrowException(v8::Exception::SyntaxError(
         v8::String::NewFromUtf8(isolate, "Invalid format")));
     return v8::Undefined(isolate);
   }
+
   delete []to_parse;
   return result;
 }
 
+v8::Local<v8::String> ParseNetworkPackets(v8::Isolate* isolate,
+    const v8::String::Utf8Value& in, v8::Local<v8::Array> out) {
+  std::size_t total_size = 0;
+  std::size_t parsed_size = 0;
+  const char* source = deserializer::PrepareString(*in, in.length(), &total_size);
+  const char* curr_chunk = source;
+  int index = 0;
+
+  while (parsed_size < total_size) {
+    auto chunk_size = strlen(curr_chunk);
+    parsed_size += chunk_size + 1;
+
+    if (parsed_size <= total_size) {
+      std::size_t parsed_chunk_size = 0;
+      auto result = deserializer::ParseObject(isolate, curr_chunk,
+          curr_chunk + chunk_size, &parsed_chunk_size);
+
+      if (parsed_chunk_size != chunk_size) {
+        isolate->ThrowException(v8::Exception::SyntaxError(
+            v8::String::NewFromUtf8(isolate, "Invalid format")));
+        return v8::String::Empty(isolate);
+      }
+
+      out->Set(index++, result);
+
+      curr_chunk += chunk_size + 1;
+    }
+  }
+
+  auto rest = v8::String::NewFromUtf8(isolate, curr_chunk);
+  delete []source;
+  return rest;
+}
+
 namespace deserializer {
 
-const char* PrepareString(const char* str, std::size_t length) {
+const char* PrepareString(const char* str,
+    std::size_t length, std::size_t* new_length) {
   char* result = new char[length + 1];
   bool string_mode = false;
   enum { kDisabled = 0, kOneline, kMultiline } comment_mode = kDisabled;
   std::size_t j = 0;
+
   for (std::size_t i = 0; i < length; i++) {
     if ((comment_mode == kDisabled) &&
         (str[i] == '\"' || str[i] == '\'') &&
         (i == 0 || str[i - 1] != '\\')) {
       string_mode = !string_mode;
     }
+
     if (!string_mode) {
       if (!comment_mode && str[i] == '/') {
         switch (str[i + 1]) {
@@ -292,9 +333,11 @@ const char* PrepareString(const char* str, std::size_t length) {
             break;
         }
       }
+
       if (!comment_mode && !std::isspace(str[i])) {
         result[j++] = str[i];
       }
+
       if ((comment_mode == kOneline && (str[i] == '\n' || str[i] == '\r')) ||
           (comment_mode == kMultiline && str[i - 1] == '*' && str[i] == '/')) {
         comment_mode = kDisabled;
@@ -303,7 +346,10 @@ const char* PrepareString(const char* str, std::size_t length) {
       result[j++] = str[i];
     }
   }
+
   result[j] = '\0';
+  *new_length = j;
+
   return result;
 }
 
@@ -595,7 +641,7 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
           return v8::Object::New(isolate);
         }
       } else if (begin[i] == '}') {
-        if (begin[i - 1] != ',') { // In case of empty object
+        if (begin[i - 1] != ',') {  // In case of empty object
           *size = 2;
         } else {
           *size = i + 1;
@@ -782,9 +828,34 @@ void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
   args.GetReturnValue().Set(result);
 }
 
+void ParseNetworkPackets(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = args.GetIsolate();
+
+  if (args.Length() != 2) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  if (!args[0]->IsString() || !args[1]->IsArray()) {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Wrong argument type")));
+    return;
+  }
+
+  v8::HandleScope scope(isolate);
+
+  v8::String::Utf8Value str(args[0]->ToString());
+  auto array = v8::Local<v8::Array>::Cast(args[1]);
+  auto result = jstp::jsrs::ParseNetworkPackets(isolate, str, array);
+
+  args.GetReturnValue().Set(result);
+}
+
 void Init(v8::Local<v8::Object> target) {
   NODE_SET_METHOD(target, "stringify", Stringify);
   NODE_SET_METHOD(target, "parse", Parse);
+  NODE_SET_METHOD(target, "parseNetworkPackets", ParseNetworkPackets);
 }
 
 NODE_MODULE(jsrs, Init);
