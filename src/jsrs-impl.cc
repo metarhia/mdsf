@@ -296,7 +296,6 @@ v8::Local<v8::String> ParseNetworkPackets(v8::Isolate* isolate,
       }
 
       out->Set(index++, result);
-
       curr_chunk += chunk_size + 1;
     }
   }
