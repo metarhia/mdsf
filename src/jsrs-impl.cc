@@ -617,14 +617,14 @@ v8::Local<v8::String> ParseKeyInObject(v8::Isolate* isolate, const char* begin,
     if (valid && current_type == Type::kString) {
       std::size_t offset;
       result = ParseString(isolate, begin, end,
-        &offset).As<v8::String>();
+          &offset).As<v8::String>();
       *size = offset;
       return result;
     } else {
       isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate,
-          "Invalid format in object: key is invalid string")));
-        return v8::Local<v8::String>();
+          v8::String::NewFromUtf8(isolate,
+              "Invalid format in object: key is invalid string")));
+      return v8::Local<v8::String>();
     }
   } else {
     std::size_t current_length = 0;
@@ -632,12 +632,13 @@ v8::Local<v8::String> ParseKeyInObject(v8::Isolate* isolate, const char* begin,
       if (begin[i] == ':') {
         if (current_length != 0) {
           result = v8::String::NewFromUtf8(isolate, begin,
-            v8::NewStringType::kInternalized, current_length).ToLocalChecked();
+                                           v8::NewStringType::kInternalized,
+                                           current_length).ToLocalChecked();
           break;
         } else {
           isolate->ThrowException(v8::Exception::SyntaxError(
-            v8::String::NewFromUtf8(isolate,
-              "Unexpected token :")));
+              v8::String::NewFromUtf8(isolate,
+                  "Unexpected token :")));
           return v8::Local<v8::String>();
         }
       } else if (begin[i] == '_' ||
@@ -645,8 +646,8 @@ v8::Local<v8::String> ParseKeyInObject(v8::Isolate* isolate, const char* begin,
         current_length++;
       } else {
         isolate->ThrowException(v8::Exception::SyntaxError(
-          v8::String::NewFromUtf8(isolate,
-            "Invalid format in object: key has invalid type")));
+            v8::String::NewFromUtf8(isolate,
+                "Invalid format in object: key has invalid type")));
         return v8::Local<v8::String>();
       }
     }
@@ -690,25 +691,25 @@ v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
         break;
       }
       current_key = ParseKeyInObject(isolate, begin + i, end,
-        &current_length);
+                                     &current_length);
       i += current_length;
     } else {
       current_value = ParseValueInObject(isolate, begin + i, end,
-        &current_length);
+                                         &current_length);
       if (!current_value->IsUndefined()) {
         v8::Maybe<bool> is_ok = result->Set(isolate->GetCurrentContext(),
-          current_key, current_value);
+            current_key, current_value);
         if (is_ok.IsNothing()) {
           isolate->ThrowException(
-            v8::Exception::Error(v8::String::NewFromUtf8(isolate,
-              "Cannot add property to object")));
+              v8::Exception::Error(v8::String::NewFromUtf8(isolate,
+                  "Cannot add property to object")));
         }
       }
       i += current_length;
       if (begin[i] != ',' && begin[i] != '}') {
         isolate->ThrowException(v8::Exception::SyntaxError(
-        v8::String::NewFromUtf8(isolate,
-            "Invalid format in object")));
+            v8::String::NewFromUtf8(isolate,
+                "Invalid format in object")));
         return v8::Object::New(isolate);
       } else if (begin[i] == '}') {
         *size = i + 1;
