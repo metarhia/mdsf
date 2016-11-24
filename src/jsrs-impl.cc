@@ -607,97 +607,117 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
   return result;
 }
 
+v8::Local<v8::String> ParseKeyInObject(v8::Isolate* isolate, const char* begin,
+                                       const char* end, std::size_t* size) {
+  *size = end - begin;
+  v8::Local<v8::String> result;
+  if (begin[0] == '\'' || begin[0] == '"') {
+    Type current_type;
+    bool valid = GetType(begin, end, &current_type);
+    if (valid && current_type == Type::kString) {
+      std::size_t offset;
+      result = ParseString(isolate, begin, end,
+        &offset).As<v8::String>();
+      *size = offset;
+      return result;
+    } else {
+      isolate->ThrowException(v8::Exception::SyntaxError(
+        v8::String::NewFromUtf8(isolate,
+          "Invalid format in object: key is invalid string")));
+        return v8::Local<v8::String>();
+    }
+  } else {
+    std::size_t current_length = 0;
+    for (std::size_t i = 0; i < *size; i++) {
+      if (begin[i] == ':') {
+        if (current_length != 0) {
+          result = v8::String::NewFromUtf8(isolate, begin,
+            v8::NewStringType::kInternalized, current_length).ToLocalChecked();
+          break;
+        } else {
+          isolate->ThrowException(v8::Exception::SyntaxError(
+            v8::String::NewFromUtf8(isolate,
+              "Unexpected token :")));
+          return v8::Local<v8::String>();
+        }
+      } else if (begin[i] == '_' ||
+                (i != 0 ? isalnum(begin[i]) : isalpha(begin[i]))) {
+        current_length++;
+      } else {
+        isolate->ThrowException(v8::Exception::SyntaxError(
+          v8::String::NewFromUtf8(isolate,
+            "Invalid format in object: key has invalid type")));
+        return v8::Local<v8::String>();
+      }
+    }
+    *size = current_length;
+    return result;
+  }
+}
+
+v8::Local<v8::Value> ParseValueInObject(v8::Isolate* isolate, const char* begin,
+                                        const char* end, std::size_t* size) {
+  v8::Local<v8::Value> value;
+  Type current_type;
+  bool valid = GetType(begin, end, &current_type);
+  if (valid) {
+    value = (kParseFunctions[current_type])(isolate, begin, end, size);
+    return value;
+  } else {
+    isolate->ThrowException(v8::Exception::TypeError(
+        v8::String::NewFromUtf8(isolate, "Invalid type in object")));
+    return v8::Object::New(isolate);
+  }
+}
+
 v8::Local<v8::Value> ParseObject(v8::Isolate* isolate, const char* begin,
                                  const char* end, std::size_t* size) {
   bool key_mode = true;
   *size = end - begin;
-  char current_key[kMaxKeyLength];
-  v8::Local<v8::String> current_key_string = v8::Local<v8::String>();
+  v8::Local<v8::String> current_key;
+  v8::Local<v8::Value> current_value;
   std::size_t current_length = 0;
-  Type current_type;
-  v8::Local<v8::Object> object = v8::Object::New(isolate);
-  v8::Local<v8::Value> t;
+  v8::Local<v8::Object> result = v8::Object::New(isolate);
+
   for (std::size_t i = 1; i < *size; i++) {
     if (key_mode) {
-      if (begin[i] == ':') {
-        key_mode = false;
-        strncpy(current_key, begin + i - current_length, current_length);
-        current_key[current_length] = '\0';
-        current_length = 0;
-      } else if (isalnum(begin[i]) || begin[i] == '_') {
-        current_length++;
-      } else if ((begin[i] == '\'' || begin[i] == '"') && begin[i-1] != '\\') {
-        bool valid = GetType(begin + i, end, &current_type);
-        if (valid && current_type == Type::kString) {
-          std::size_t offset;
-          current_key_string = ParseString(isolate, begin + i, end,
-                                           &offset).As<v8::String>();
-          i += offset - 1;
-        } else {
-          isolate->ThrowException(v8::Exception::SyntaxError(
-              v8::String::NewFromUtf8(isolate,
-                  "Invalid format in object: key is invalid string")));
-          return v8::Object::New(isolate);
-        }
-      } else if (begin[i] == '}') {
+      if (begin[i] == '}') {
         if (begin[i - 1] != ',') {  // In case of empty object
           *size = 2;
-        } else {
+        } else {                    // In case of trailing comma
           *size = i + 1;
         }
-        return object;
-      } else {
-        isolate->ThrowException(v8::Exception::SyntaxError(
-            v8::String::NewFromUtf8(isolate,
-                "Invalid format in object: key has invalid type")));
-        return v8::Object::New(isolate);
+        break;
       }
+      current_key = ParseKeyInObject(isolate, begin + i, end,
+        &current_length);
+      i += current_length;
     } else {
-      bool valid = GetType(begin + i, end, &current_type);
-      if (valid) {
-        t = (kParseFunctions[current_type])(isolate, begin + i, end,
-                                       &current_length);
-        if (!t->IsUndefined()) {
-          auto check_result = [isolate](v8::Maybe<bool> value) {
-            if (value.IsNothing()) {
-              isolate->ThrowException(
-                  v8::Exception::Error(v8::String::NewFromUtf8(isolate,
-                      "Cannot add property to object")));
-            }
-          };
-
-          if (!current_key_string.IsEmpty()) {
-            v8::Maybe<bool> result = object->Set(isolate->GetCurrentContext(),
-                current_key_string, t);
-            check_result(result);
-            current_key_string.Clear();
-          } else {
-            v8::Maybe<bool> result = object->Set(isolate->GetCurrentContext(),
-                v8::String::NewFromUtf8(isolate, current_key), t);
-            check_result(result);
-          }
+      current_value = ParseValueInObject(isolate, begin + i, end,
+        &current_length);
+      if (!current_value->IsUndefined()) {
+        v8::Maybe<bool> is_ok = result->Set(isolate->GetCurrentContext(),
+          current_key, current_value);
+        if (is_ok.IsNothing()) {
+          isolate->ThrowException(
+            v8::Exception::Error(v8::String::NewFromUtf8(isolate,
+              "Cannot add property to object")));
         }
-        i += current_length;
-        if (begin[i] != ',' && begin[i] != '}') {
-          isolate->ThrowException(v8::Exception::SyntaxError(
-          v8::String::NewFromUtf8(isolate,
-              "Invalid format in object: missed comma")));
-          return v8::Object::New(isolate);
-        } else if (begin[i] == '}') {
-          *size = i + 1;
-          break;
-        }
-        current_key[0] = '\0';
-        current_length = 0;
-        key_mode = true;
-      } else {
-        isolate->ThrowException(v8::Exception::TypeError(
-            v8::String::NewFromUtf8(isolate, "Invalid type in object")));
+      }
+      i += current_length;
+      if (begin[i] != ',' && begin[i] != '}') {
+        isolate->ThrowException(v8::Exception::SyntaxError(
+        v8::String::NewFromUtf8(isolate,
+            "Invalid format in object")));
         return v8::Object::New(isolate);
+      } else if (begin[i] == '}') {
+        *size = i + 1;
+        break;
       }
     }
+    key_mode = !key_mode;
   }
-  return object;
+  return result;
 }
 
 bool GetType(const char* begin, const char* end, Type* type) {
