@@ -492,11 +492,11 @@ v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
   }
   if (!is_ended) {
     isolate->ThrowException(v8::Exception::SyntaxError(
-    v8::String::NewFromUtf8(isolate, "Error while parsing string")));
+        v8::String::NewFromUtf8(isolate, "Error while parsing string")));
     return v8::String::Empty(isolate);
   }
   v8::Local<v8::String> result_str = v8::String::NewFromUtf8(isolate, result,
-    v8::NewStringType::kNormal, res_index).ToLocalChecked();
+      v8::NewStringType::kNormal, res_index).ToLocalChecked();
   delete []result;
   return result_str;
 }
