@@ -563,6 +563,7 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
     case '\\': *result = '\\'; break;
     case '\'': *result = '\''; break;
     case '"': *result = '"'; break;
+    case '/': *result = '/'; break;
     case 'x': {
       *result = ReadHexNumber(str + 1, 2, &ok);
       if (!ok) {
