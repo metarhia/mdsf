@@ -468,9 +468,8 @@ v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
   std::size_t res_index = 0;
   std::size_t out_offset, in_offset;
   for (std::size_t i = 1; i < *size; i++) {
-    if (((string_mode == kQMarks && begin[i] == '\"') ||
-         (string_mode == kApostrophe && begin[i] == '\'')) &&
-          begin[i - 1] != '\\') {
+    if ((string_mode == kQMarks && begin[i] == '\"') ||
+        (string_mode == kApostrophe && begin[i] == '\'')) {
       is_ended = true;
       *size = i + 1;
       result[res_index] = '\0';
@@ -560,10 +559,6 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
     case 't': *result = '\t'; break;
     case 'v': *result = '\v'; break;
     case '0': *result = '\0'; break;
-    case '\\': *result = '\\'; break;
-    case '\'': *result = '\''; break;
-    case '"': *result = '"'; break;
-    case '/': *result = '/'; break;
     case 'x': {
       *result = ReadHexNumber(str + 1, 2, &ok);
       if (!ok) {
@@ -600,9 +595,7 @@ char* GetControlChar(v8::Isolate* isolate, const char* str,
       return unicode_symbol;
     }
     default:
-      isolate->ThrowException(v8::Exception::SyntaxError(
-          v8::String::NewFromUtf8(isolate, "Invalid string format")));
-      return nullptr;
+      *result = str[0];
   }
 
   return result;
