@@ -828,7 +828,7 @@ void Parse(const v8::FunctionCallbackInfo<v8::Value>& args) {
         v8::String::NewFromUtf8(isolate, "Wrong number of arguments")));
     return;
   }
-  if (!args[0]->IsString()) {
+  if (!args[0]->IsString() && !args[0]->IsUint8Array()) {
     isolate->ThrowException(v8::Exception::TypeError(
         v8::String::NewFromUtf8(isolate, "Wrong argument type")));
     return;
