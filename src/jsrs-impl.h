@@ -142,6 +142,20 @@ v8::Local<v8::Value> ParseString(v8::Isolate* isolate, const char* begin,
 v8::Local<v8::Value> ParseArray(v8::Isolate* isolate, const char* begin,
     const char* end, std::size_t* size);
 
+// Parses an object key from `begin` but never past `end` and returns
+// the parsed JavaScript value. The `size` is incremented by the number
+// of characters the function has used in the string so that the calling side
+// knows where to continue from.
+v8::Local<v8::String> ParseKeyInObject(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t* size);
+
+// Parses a value corresponding to key inside object from `begin`
+// but never past `end` and returns the parsed JavaScript value.
+// The `size` is incremented by the number of characters the function has used
+// in the string so that the calling side knows where to continue from.
+v8::Local<v8::Value> ParseValueInObject(v8::Isolate* isolate, const char* begin,
+    const char* end, std::size_t* size);
+
 // Parses an object from `begin` but never past `end` and returns the parsed
 // JavaScript value. The `size` is incremented by the number of characters the
 // function has used in the string so that the calling side knows where to
@@ -165,8 +179,18 @@ constexpr static v8::Local<v8::Value> (*kParseFunctions[])(v8::Isolate*,
 // The maximum length of object keys.
 static const std::size_t kMaxKeyLength = 256;
 
+// Returns true if `str` points to a valid Line Terminator Sequence code point,
+// false otherwise. `size` will receive the number of bytes used by this
+// code point (1, 2, 3).
+bool IsLineTerminatorSequence(const char* str, std::size_t* size);
+
+// Returns true if `str` points to a valid White space code point,
+// false otherwise. `size` will receive the number of bytes used by this
+// code point (1, 2, 3).
+bool IsWhiteSpaceCharacter(const char* str, std::size_t* size);
+
 // Prepares a source string for parsing throwing out whitespace and comments.
-const char* PrepareString(const char* str,
+const char* PrepareString(v8::Isolate* isolate, const char* str,
     std::size_t length, std::size_t* new_length);
 
 // Parses the type of the serialized JavaScript value at the position `begin`

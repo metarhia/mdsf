@@ -249,7 +249,11 @@ bool IsValidKey(v8::Isolate* isolate, const v8::String::Utf8Value& key) {
 v8::Local<v8::Value> Parse(v8::Isolate* isolate,
       const v8::String::Utf8Value& in) {
   std::size_t size;
-  const char* to_parse = deserializer::PrepareString(*in, in.length(), &size);
+  const char* to_parse = deserializer::PrepareString(isolate, *in, in.length(),
+                                                     &size);
+  if (!to_parse) {
+    return v8::Undefined(isolate);
+  }
 
   deserializer::Type type;
   if (!deserializer::GetType(to_parse, to_parse + size, &type)) {
@@ -276,7 +280,8 @@ v8::Local<v8::String> ParseNetworkPackets(v8::Isolate* isolate,
     const v8::String::Utf8Value& in, v8::Local<v8::Array> out) {
   std::size_t total_size = 0;
   std::size_t parsed_size = 0;
-  const char* source = deserializer::PrepareString(*in, in.length(), &total_size);
+  const char* source = deserializer::PrepareString(isolate, *in, in.length(),
+                                                   &total_size);
   const char* curr_chunk = source;
   int index = 0;
 
@@ -307,12 +312,63 @@ v8::Local<v8::String> ParseNetworkPackets(v8::Isolate* isolate,
 
 namespace deserializer {
 
-const char* PrepareString(const char* str,
+bool IsLineTerminatorSequence(const char* str, std::size_t* size) {
+  if (str[0] == '\x0D' && str[1] == '\x0A') {
+    *size = 2;
+    return true;
+  } else if (str[0] == '\x0D' || str[0] == '\x0A') {
+    *size = 1;
+    return true;
+  } else if (str[0] == '\xE2' &&
+             str[1] == '\x80' &&
+            (str[2] == '\xA8' ||
+             str[2] == '\xA9')) {
+    *size = 3;
+    return true;
+  }
+  return false;
+}
+
+bool IsWhiteSpaceCharacter(const char* str, std::size_t* size) {
+  constexpr static const std::size_t length = 16;
+  constexpr static const char white_space_symbols[length][4] = {
+    "\xEF\xBB\xBF", "\xE1\x9A\x80",
+    "\xE2\x80\x80", "\xE2\x80\x81",
+    "\xE2\x80\x82", "\xE2\x80\x83",
+    "\xE2\x80\x84", "\xE2\x80\x85",
+    "\xE2\x80\x86", "\xE2\x80\x87",
+    "\xE2\x80\x88", "\xE2\x80\x89",
+    "\xE2\x80\x8A",
+    "\xE2\x80\xAF", "\xE2\x81\x9F", "\xE3\x80\x80"
+  };
+  if (str[0] == '\x09' ||
+      str[0] == '\x0B' ||
+      str[0] == '\x0C' ||
+      str[0] == '\x20' ||
+      str[0] == '\xA0') {
+    *size = 1;
+    return true;
+  } else if (str[0] == '\xC2' && str[1] == '\xA0') {
+    *size = 2;
+    return true;
+  } else {
+    for (std::size_t i = 0; i < length; i++) {
+      if (std::strncmp(str, white_space_symbols[i], 3) == 0) {
+        *size = 3;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+const char* PrepareString(v8::Isolate* isolate, const char* str,
     std::size_t length, std::size_t* new_length) {
   char* result = new char[length + 1];
   bool string_mode = false;
   enum { kDisabled = 0, kOneline, kMultiline } comment_mode = kDisabled;
   std::size_t j = 0;
+  std::size_t size = 0;
 
   for (std::size_t i = 0; i < length; i++) {
     if ((comment_mode == kDisabled) &&
@@ -322,7 +378,7 @@ const char* PrepareString(const char* str,
     }
 
     if (!string_mode) {
-      if (!comment_mode && str[i] == '/') {
+      if (comment_mode == kDisabled && str[i] == '/') {
         switch (str[i + 1]) {
           case '/':
             comment_mode = kOneline;
@@ -333,14 +389,26 @@ const char* PrepareString(const char* str,
         }
       }
 
-      if (!comment_mode && !std::isspace(str[i])) {
-        result[j++] = str[i];
+      if (comment_mode == kDisabled) {
+        if (IsWhiteSpaceCharacter(str + i, &size) ||
+            IsLineTerminatorSequence(str + i, &size)) {
+          str += size - 1;
+        } else {
+          result[j++] = str[i];
+        }
       }
 
-      if ((comment_mode == kOneline && (str[i] == '\n' || str[i] == '\r')) ||
-          (comment_mode == kMultiline && str[i - 1] == '*' && str[i] == '/')) {
+      if ((comment_mode == kOneline && IsLineTerminatorSequence(str + i, &size))
+      ||  (comment_mode == kMultiline && str[i - 1] == '*' && str[i] == '/')) {
         comment_mode = kDisabled;
       }
+    } else if (str[i] == '\\' && IsLineTerminatorSequence(str + i + 1, &size)) {
+      i += size;
+    } else if (IsLineTerminatorSequence(str + i, &size)) {
+      isolate->ThrowException(v8::Exception::SyntaxError(
+          v8::String::NewFromUtf8(isolate, "Unexpected line end in string")));
+      delete []result;
+      return nullptr;
     } else {
       result[j++] = str[i];
     }
