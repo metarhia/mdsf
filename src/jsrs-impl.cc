@@ -330,17 +330,6 @@ bool IsLineTerminatorSequence(const char* str, std::size_t* size) {
 }
 
 bool IsWhiteSpaceCharacter(const char* str, std::size_t* size) {
-  constexpr static const std::size_t length = 16;
-  constexpr static const char white_space_symbols[length][4] = {
-    "\xEF\xBB\xBF", "\xE1\x9A\x80",
-    "\xE2\x80\x80", "\xE2\x80\x81",
-    "\xE2\x80\x82", "\xE2\x80\x83",
-    "\xE2\x80\x84", "\xE2\x80\x85",
-    "\xE2\x80\x86", "\xE2\x80\x87",
-    "\xE2\x80\x88", "\xE2\x80\x89",
-    "\xE2\x80\x8A",
-    "\xE2\x80\xAF", "\xE2\x81\x9F", "\xE3\x80\x80"
-  };
   if (str[0] == '\x09' ||
       str[0] == '\x0B' ||
       str[0] == '\x0C' ||
@@ -352,11 +341,35 @@ bool IsWhiteSpaceCharacter(const char* str, std::size_t* size) {
     *size = 2;
     return true;
   } else {
-    for (std::size_t i = 0; i < length; i++) {
-      if (std::strncmp(str, white_space_symbols[i], 3) == 0) {
-        *size = 3;
-        return true;
-      }
+    bool is_multibyte_space = false;
+    switch (str[0]) {
+      case '\xE1':
+        if (str[1] == '\xBB' && str[2] == '\xBF') {
+          is_multibyte_space = true;
+        }
+        break;
+      case '\xE2':
+        if ((str[1] == '\x80' &&
+              ((static_cast<unsigned char>(str[2]) & 0x7F) <= 0xA ||
+                                           str[2] == '\xAF'))      ||
+            (str[1] == '\x81' && str[2] == '\x9F')) {
+          is_multibyte_space = true;
+        }
+        break;
+      case '\xE3':
+        if (str[1] == '\x80' && str[2] == '\x80') {
+          is_multibyte_space = true;
+        }
+        break;
+      case '\xEF':
+        if (str[1] == '\xBB' && str[2] == '\xBF') {
+          is_multibyte_space = true;
+        }
+        break;
+    }
+    if (is_multibyte_space) {
+      *size = 3;
+      return true;
     }
   }
   return false;
@@ -392,7 +405,7 @@ const char* PrepareString(v8::Isolate* isolate, const char* str,
       if (comment_mode == kDisabled) {
         if (IsWhiteSpaceCharacter(str + i, &size) ||
             IsLineTerminatorSequence(str + i, &size)) {
-          str += size - 1;
+          i += size - 1;
         } else {
           result[j++] = str[i];
         }
