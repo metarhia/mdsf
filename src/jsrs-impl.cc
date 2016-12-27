@@ -351,7 +351,7 @@ bool IsWhiteSpaceCharacter(const char* str, std::size_t* size) {
       case '\xE2':
         if ((str[1] == '\x80' &&
               ((static_cast<unsigned char>(str[2]) & 0x7F) <= 0xA ||
-                                           str[2] == '\xAF'))      ||
+                                           str[2] == '\xAF'))     ||
             (str[1] == '\x81' && str[2] == '\x9F')) {
           is_multibyte_space = true;
         }
