@@ -1,6 +1,6 @@
 'use strict';
 
-var browsers = process.env.TRAVIS ?
+const browsers = process.env.TRAVIS ?
   ['Firefox'] :
   ['Chrome', 'ChromeCanary', 'Firefox'];
 
@@ -8,7 +8,7 @@ if (process.platform === 'darwin') {
   browsers.push('Safari');
 }
 
-module.exports = function(config) {
+module.exports = (config) => {
   config.set({
     basePath: '',
     frameworks: ['mocha'],
@@ -26,7 +26,7 @@ module.exports = function(config) {
     colors: true,
     logLevel: config.LOG_INFO,
     autoWatch: false,
-    browsers: browsers,
+    browsers,
     webpack: {},
     webpackMiddleware: {
       stats: 'errors-only'

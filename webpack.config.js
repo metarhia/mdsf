@@ -1,10 +1,10 @@
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
-var webpack = require('webpack');
+const fs = require('fs');
+const path = require('path');
+const webpack = require('webpack');
 
-var license = fs.readFileSync(path.join(__dirname, 'LICENSE')).toString();
+const license = fs.readFileSync(path.join(__dirname, 'LICENSE')).toString();
 
 module.exports = {
   entry: './jstp',
