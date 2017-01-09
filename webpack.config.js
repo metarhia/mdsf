@@ -7,13 +7,22 @@ const webpack = require('webpack');
 const license = fs.readFileSync(path.join(__dirname, 'LICENSE')).toString();
 
 module.exports = {
-  entry: './jstp',
+  entry: [
+    'babel-polyfill',
+    './jstp'
+  ],
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'jstp.min.js',
     sourceMapFilename: 'jstp.min.js.map',
     libraryTarget: 'assign',
     library: ['api', 'jstp']
+  },
+  module: {
+    loaders: [{
+      test: /\.js$/,
+      loader: 'babel-loader?cacheDirectory=true'
+    }]
   },
   devtool: 'source-map',
   node: {
