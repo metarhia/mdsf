@@ -183,7 +183,9 @@ function testSyntaxError(parseFunction) {
     [ 'asdf',
       'process',
       'module',
-      '#+'
+      '#+',
+      '\'\\u{\'',
+      '\'\\u{}\''
     ].map((input) => jstp[parseFunction].bind(null, input)).forEach((fn) => {
       expect(fn).to.throw();
     });
