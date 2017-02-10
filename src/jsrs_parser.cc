@@ -451,10 +451,6 @@ static bool GetControlChar(Isolate*    isolate,
       *write_to = '\v';
       break;
     }
-    case '0': {
-      *write_to = '\0';
-      break;
-    }
 
     case 'x': {
       *write_to = static_cast<char>(ReadHexNumber(str + 1, 2, &ok));
