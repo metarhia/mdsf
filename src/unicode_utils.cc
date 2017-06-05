@@ -4,8 +4,18 @@
 #include "unicode_utils.h"
 
 #include <cstddef>
+#include <cstdint>
+
+#define _JSRS_USE_FULL_TABLES_
+
+#ifdef _JSRS_USE_FULL_TABLES_
+#include "unicode_tables.h"
+#else
+#include "unicode_range_tables.h"
+#endif
 
 using std::size_t;
+using std::uint32_t;
 
 namespace jstp {
 
@@ -106,6 +116,91 @@ void CodePointToUtf8(unsigned int c, size_t* size, char* write_to) {
     return;
   }
 }
+
+uint32_t Utf8ToCodePoint(const char* begin, size_t* size) {
+  auto str = reinterpret_cast<const unsigned char*>(begin);
+  uint32_t result = 0;
+  *size = 1;
+  if (*str < 0x80) {
+    return *str;
+  } else if ((*str & 0xE0) == 0xC0) {
+    *size = 2;
+    result += (*str & 0x1F) << 6;
+  } else if ((*str & 0xF0) == 0xE0) {
+    *size = 3;
+    result += (*str & 0x0F) << 12;
+  } else if ((*str & 0xF8) == 0xF0) {
+    *size = 4;
+    result += (*str & 0x07) << 18;
+  } else {
+    return 0xFFFD;
+  }
+  for (size_t i = 2; i <= *size; i++) {
+    str++;
+    if ((*str & 0xC0) != 0x80) {
+      *size = i;
+      return 0xFFFD;
+    }
+    result += (*str & 0x3F) << ((*size - i) * 6);
+  }
+  return result;
+}
+
+#ifdef _JSRS_USE_FULL_TABLES_
+
+bool IsIdStartCodePoint(uint32_t cp) {
+  return ID_START_FULL[cp];
+}
+
+bool IsIdPartCodePoint(uint32_t cp) {
+  return ID_CONTINUE_FULL[cp];
+}
+
+#undef _JSRS_USE_FULL_TABLES_
+#else
+
+bool search_cp(uint32_t cp, const unicode_range* ranges, size_t size) {
+  size_t low = 0;
+  size_t high = size;
+  while (high > low) {
+    size_t mid = low + (high - low) / 2;
+    unicode_range range = ranges[mid];
+    if (range.start <= cp && cp <= range.end) {
+      return true;
+    }
+    if (cp < range.start) {
+      high = mid;
+    } else {
+      low = mid + 1;
+    }
+  }
+  return false;
+}
+
+bool IsIdStartCodePoint(uint32_t cp) {
+  if (('a' <= cp && cp <= 'z') ||
+      ('A' <= cp && cp <= 'Z') ||
+      cp == '_' ||
+      cp == '$') {
+    return true;
+  }
+  return search_cp(cp, ID_START_RANGES, ID_START_RANGES_COUNT);
+}
+
+bool IsIdPartCodePoint(uint32_t cp) {
+  if (('a' <= cp && cp <= 'z') ||
+      ('A' <= cp && cp <= 'Z') ||
+      ('0' <= cp && cp <= '9') ||
+      cp == '_' ||
+      cp == '$') {
+    return true;
+  }
+  return search_cp(cp, ID_CONTINUE_RANGES, ID_CONTINUE_RANGES_COUNT) ||
+                   cp == 0x200C || cp == 0x200D; // ZWNJ, ZWJ
+}
+
+#endif
+
 
 }  // namespace unicode_utils
 
