@@ -24,6 +24,7 @@ using std::isdigit;
 using std::isinf;
 using std::isnan;
 using std::isxdigit;
+using std::memcpy;
 using std::memset;
 using std::ptrdiff_t;
 using std::size_t;
@@ -552,7 +553,58 @@ MaybeLocal<Value> ParseString(Isolate*    isolate,
   return result_str;
 }
 
-static unsigned int ReadHexNumber(const char* str, size_t len, bool* ok);
+static uint32_t ReadHexNumber(const char* str,
+                              size_t required_len,
+                              bool is_limited,
+                              size_t* len,
+                              bool* ok);
+
+// Parses a Unicode escape sequence after the '\u' part and returns it's
+// code point value. Supports surrogate pairs. Total size of escape
+// sequence (excluding first '\u') is written in `size`.
+static uint32_t ReadUnicodeEscapeSequence(Isolate* isolate,
+                                          const char* str,
+                                          size_t* size,
+                                          bool* ok) {
+  uint32_t result = 0xFFFD;
+
+  if (isxdigit(str[0])) {
+    result = ReadHexNumber(str, 4, true, nullptr, ok);
+    if (!*ok) {
+      THROW_EXCEPTION(SyntaxError, "Invalid Unicode escape sequence");
+      return 0xFFFD;
+    }
+    *size = 4;
+  } else if (str[0] == '{') {
+    size_t hex_size;
+    result = ReadHexNumber(str + 1, 0, false, &hex_size, ok);
+    if (!*ok || result > 0x10FFFF) {
+      THROW_EXCEPTION(SyntaxError, "Invalid Unicode escape sequence");
+      return 0xFFFD;
+    }
+    *size = hex_size + 2;
+  } else {
+    THROW_EXCEPTION(SyntaxError, "Expected Unicode escape sequence");
+    *ok = false;
+  }
+
+  // check for surrogate pair
+  if (0xD800 <= result && result <= 0xDBFF) {
+    size_t low_size;
+    if (str[*size] == '\\' && str[*size + 1] == 'u') {
+      uint32_t low_sur = ReadUnicodeEscapeSequence(isolate,
+                                                   str + *size + 2,
+                                                   &low_size, ok);
+      if (!*ok || !(0xDC00 <= low_sur && low_sur <= 0xDFFF)) {
+        return result;
+      }
+      result = ((result - 0xD800) << 10) + low_sur - 0xDC00 + 0x10000;
+      *size += low_size + 2;
+    }
+  }
+
+  return result;
+}
 
 // Parses a part of a JavaScript string representation after the backslash
 // character (i.e., an escape sequence without \) into an unescaped control
@@ -593,7 +645,8 @@ static bool GetControlChar(Isolate*    isolate,
     }
 
     case 'x': {
-      *write_to = static_cast<char>(ReadHexNumber(str + 1, 2, &ok));
+      *write_to = static_cast<char>(ReadHexNumber(str + 1, 2, true,
+          nullptr, &ok));
       if (!ok) {
         THROW_EXCEPTION(SyntaxError, "Invalid hexadecimal escape sequence");
         return false;
@@ -603,31 +656,16 @@ static bool GetControlChar(Isolate*    isolate,
     }
 
     case 'u': {
-      unsigned int symb_code;
-      if (isxdigit(str[1])) {
-        symb_code = ReadHexNumber(str + 1, 4, &ok);
-        *size = 5;
-      } else if (str[1] == '{') {
-        size_t hex_size;  // maximal hex is 10FFFF
-        for (hex_size = 1;
-             str[hex_size + 2] != '}' && hex_size <= 6;
-             hex_size++) {
-          if (str[hex_size + 2] == '\0') {
-            THROW_EXCEPTION(SyntaxError, "Invalid Unicode code point escape");
-            return false;
-          }
-        }
-        symb_code = ReadHexNumber(str + 2, hex_size, &ok);
-        *size = hex_size + 3;
-      } else {
-        ok = false;
-      }
+      uint32_t symb_code = ReadUnicodeEscapeSequence(isolate,
+                                                     str + 1,
+                                                     size,
+                                                     &ok);
 
       if (!ok) {
-        THROW_EXCEPTION(SyntaxError, "Invalid Unicode escape sequence");
         return false;
       }
       CodePointToUtf8(symb_code, res_len, write_to);
+      *size += 1;
       break;
     }
 
@@ -639,19 +677,59 @@ static bool GetControlChar(Isolate*    isolate,
   return true;
 }
 
-// Parses a hexadecimal number into unsigned int. Whether the parsing
-// was successful is determined by the value of `ok`.
-static unsigned int ReadHexNumber(const char* str, size_t len, bool* ok) {
-  char t[6];
-  char* end;
-  strncpy(t, str, len);
-  t[len] = '\0';
-  unsigned int result = strtol(t, &end, 16);
-  if (end - t != static_cast<ptrdiff_t>(len)) {
-    *ok = false;
-  } else {
-    *ok = true;
+// Parses a hexadecimal number with maximal length of max_len (if is_limited true)
+// into uint32_t. Whether the parsing was successful is determined by the value
+// of `ok`. Resulting size of the value will be outputted in len (if is_limited is
+// false).
+static uint32_t ReadHexNumber(const char* str,
+                              size_t required_len,
+                              bool is_limited,
+                              size_t* len,
+                              bool* ok) {
+  static const int8_t xdigit_table[] = {
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, // '0' to '9'
+    -1, -1, -1, -1, -1, -1, -1,   // 0x3A to 0x40
+    10, 11, 12, 13, 14, 15,       // 'A' to 'F'
+    // 'G' to 'Z':
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1,       // 0x5B to 0x60
+    10, 11, 12, 13, 14, 15,       // 'a' to 'f'
+  };
+
+  uint32_t result = 0;
+  uint64_t current_value = 0;
+  size_t current_length = 0;
+  char current_digit;
+
+  *ok = true;
+
+  while (isxdigit(str[current_length])) {
+    current_digit = str[current_length];
+    current_length++;
+    current_value *= 16;
+    current_value += xdigit_table[current_digit - '0'];
+    if (current_value > UINT32_MAX) {
+      *ok = false;
+      return result;
+    }
+    result = current_value;
+    if (is_limited && current_length == required_len) {
+      break;
+    }
   }
+
+  if (is_limited) {
+    if (current_length < required_len) {
+      *ok = false;
+    }
+  } else {
+    if (current_length == 0) {
+      *ok = false;
+    }
+    *len = current_length;
+  }
+
   return result;
 }
 
@@ -682,17 +760,55 @@ MaybeLocal<String> ParseKeyInObject(Isolate*    isolate,
     size_t current_length = 0;
     size_t cp_size;
     uint32_t cp;
+    bool ok;
+    char* fallback = nullptr;
+    size_t fallback_length;
+    bool is_escape = false;
     while (current_length < *size) {
-      cp = Utf8ToCodePoint(begin + current_length, &cp_size);
+      if (begin[current_length] == '\\' &&
+          begin[current_length + 1] == 'u') {
+        cp = ReadUnicodeEscapeSequence(isolate, begin + current_length + 2,
+                                       &cp_size, &ok);
+        if (!ok) {
+          return MaybeLocal<String>();
+        }
+        cp_size += 2;
+        if (!fallback) {
+          fallback = new char[*size + 1];
+          memcpy(fallback, begin, current_length);
+          fallback_length = current_length;
+        }
+        is_escape = true;
+      } else {
+        cp = Utf8ToCodePoint(begin + current_length, &cp_size);
+        is_escape = false;
+      }
       if (current_length == 0 ? IsIdStartCodePoint(cp) :
                                 IsIdPartCodePoint(cp)) {
+        if (fallback) {
+          if (!is_escape) {
+            memcpy(fallback + fallback_length, begin + current_length, cp_size);
+            fallback_length += cp_size;
+          } else {
+            size_t fallback_cp_size;
+            CodePointToUtf8(cp, &fallback_cp_size, fallback + fallback_length);
+            fallback_length += fallback_cp_size;
+          }
+        }
         current_length += cp_size;
       } else {
         if (current_length != 0) {
-          result = String::NewFromUtf8(isolate, begin,
-                                       NewStringType::kInternalized,
-                                       static_cast<int>(current_length))
-                                           .ToLocalChecked();
+          if (!fallback) {
+            result = String::NewFromUtf8(isolate, begin,
+                                         NewStringType::kInternalized,
+                                         static_cast<int>(current_length))
+                                             .ToLocalChecked();
+          } else {
+            result = String::NewFromUtf8(isolate, fallback,
+                                         NewStringType::kInternalized,
+                                         static_cast<int>(fallback_length))
+                                             .ToLocalChecked();
+          }
           break;
         } else {
           THROW_EXCEPTION(SyntaxError, "Unexpected identifier");
