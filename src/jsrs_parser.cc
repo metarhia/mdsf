@@ -485,7 +485,7 @@ MaybeLocal<Value> ParseString(Isolate*    isolate,
                               const char* end,
                               size_t*     size) {
   *size = end - begin;
-  char* result = new char[*size + 1];
+  char* result = nullptr;
 
   enum { kApostrophe = 0, kQMarks} string_mode = (*begin == '\'') ?
                                                  kApostrophe :
@@ -503,6 +503,10 @@ MaybeLocal<Value> ParseString(Isolate*    isolate,
     }
 
     if (begin[i] == '\\') {
+      if (!result) {
+        result = new char[*size + 1];
+        memcpy(result, begin + 1, i - 1);
+      }
       if (IsLineTerminatorSequence(begin + i + 1, &in_offset)) {
         i += in_offset;
       } else {
@@ -520,7 +524,10 @@ MaybeLocal<Value> ParseString(Isolate*    isolate,
       THROW_EXCEPTION(SyntaxError, "Unexpected line end in string");
       return MaybeLocal<Value>();
     } else {
-      result[res_index++] = begin[i];
+      if (result) {
+        result[res_index] = begin[i];
+      }
+      res_index++;
     }
   }
 
@@ -530,9 +537,15 @@ MaybeLocal<Value> ParseString(Isolate*    isolate,
     return MaybeLocal<Value>();
   }
 
-  Local<String> result_str = String::NewFromUtf8(isolate, result,
-      NewStringType::kNormal, static_cast<int>(res_index)).ToLocalChecked();
-  delete[] result;
+  Local<String> result_str;
+  if (result) {
+    result_str = String::NewFromUtf8(isolate, result,
+        NewStringType::kNormal, static_cast<int>(res_index)).ToLocalChecked();
+    delete[] result;
+  } else {
+    result_str = String::NewFromUtf8(isolate, begin + 1,
+        NewStringType::kNormal, static_cast<int>(*size - 2)).ToLocalChecked();
+  }
   return result_str;
 }
 
