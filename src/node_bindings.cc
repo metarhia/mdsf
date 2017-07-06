@@ -18,6 +18,7 @@ using v8::Local;
 using v8::Object;
 using v8::String;
 using v8::Value;
+using v8::Uint8Array;
 
 namespace mdsf {
 
@@ -30,15 +31,27 @@ void Parse(const FunctionCallbackInfo<Value>& args) {
     THROW_EXCEPTION(TypeError, "Wrong number of arguments");
     return;
   }
-  if (!args[0]->IsString() && !args[0]->IsUint8Array()) {
+
+  HandleScope scope(isolate);
+
+  Local<Value> result;
+  std::size_t length;
+
+  if (args[0]->IsString()) {
+    String::Utf8Value str(args[0]);
+    length = str.length();
+    result = mdsf::parser::Parse(isolate, *str, length);
+  } else if (args[0]->IsUint8Array()) {
+    Local<Uint8Array> buf = args[0].As<Uint8Array>();
+    length = buf->ByteLength();
+    void* data = buf->Buffer()->GetContents().Data();
+    const char* str = static_cast<const char*>(data) + buf->ByteOffset();
+    result = mdsf::parser::Parse(isolate, str, length);
+  } else {
     THROW_EXCEPTION(TypeError, "Wrong argument type");
     return;
   }
 
-  HandleScope scope(isolate);
-
-  String::Utf8Value str(args[0]->ToString());
-  auto result = mdsf::parser::Parse(isolate, str);
   args.GetReturnValue().Set(result);
 }
 
