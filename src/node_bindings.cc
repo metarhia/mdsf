@@ -80,8 +80,10 @@ void ParseJSTPMessages(const FunctionCallbackInfo<Value>& args) {
 #endif
       args[0]->ToString()
   );
+  std::size_t length = str.length();
   auto array = args[1].As<Array>();
-  auto result = mdsf::message_parser::ParseJSTPMessages(isolate, str, array);
+  auto result = mdsf::message_parser::ParseJSTPMessages(isolate, *str, length,
+                                                        array);
   args.GetReturnValue().Set(result);
 }
 
