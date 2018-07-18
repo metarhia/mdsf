@@ -1,2 +1,1 @@
-# mdsf
-Metarhia Data Serialization Format
+# Metarhia Data Serialization Format
