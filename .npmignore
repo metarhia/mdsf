@@ -1,3 +1,32 @@
-node_modules
+# Logs and dumps
 *.log
-.DS_Store
+*.cpuprofile
+*.heapsnapshot
+
+# Development helpers
+dev/
+
+# Project files
+.color_coded
+.idea/
+
+# node-gyp build
+build/
+
+# Docs
+doc/
+site/
+mkdocs.yml
+
+# Python bytecode
+*.pyc
+
+# Examples
+examples/
+
+# Tests
+test/
+
+# Test coverage data
+coverage/
+.nyc_output/

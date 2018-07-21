@@ -1,3 +1,32 @@
+# Node.js and NPM
 node_modules
 *.log
+*.cpuprofile
+*.heapsnapshot
+
+# Development helpers
+dev/
+
+# Project files
+.color_coded
+.idea/
+.ycm_extra_conf.py
+.clang
+compile_commands.json
+
+# OS-specific files
 .DS_Store
+
+# node-gyp and webpack build
+build/
+dist/
+
+# Built docs
+site/
+
+# Python bytecode
+*.pyc
+
+# Test coverage data
+coverage/
+.nyc_output/
