@@ -42,7 +42,7 @@ void Parse(const FunctionCallbackInfo<Value>& args) {
   args.GetReturnValue().Set(result);
 }
 
-void ParseNetworkMessages(const FunctionCallbackInfo<Value>& args) {
+void ParseJSTPMessages(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = args.GetIsolate();
 
   if (args.Length() != 2) {
@@ -58,13 +58,13 @@ void ParseNetworkMessages(const FunctionCallbackInfo<Value>& args) {
 
   String::Utf8Value str(args[0]->ToString());
   auto array = args[1].As<Array>();
-  auto result = mdsf::message_parser::ParseNetworkMessages(isolate, str, array);
+  auto result = mdsf::message_parser::ParseJSTPMessages(isolate, str, array);
   args.GetReturnValue().Set(result);
 }
 
 void Init(Local<Object> target) {
   NODE_SET_METHOD(target, "parse", Parse);
-  NODE_SET_METHOD(target, "parseNetworkMessages", ParseNetworkMessages);
+  NODE_SET_METHOD(target, "parseJSTPMessages", ParseJSTPMessages);
 }
 
 NODE_MODULE(mdsf, Init);

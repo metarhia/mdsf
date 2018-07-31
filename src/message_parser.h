@@ -15,7 +15,7 @@ namespace message_parser {
 // Efficiently parses JSTP messages for transports that require message
 // delimiters eliminating the need to split the stream data into parts before
 // parsing and allowing to do that in one pass.
-v8::Local<v8::String> ParseNetworkMessages(v8::Isolate* isolate,
+v8::Local<v8::String> ParseJSTPMessages(v8::Isolate* isolate,
     const v8::String::Utf8Value& in, v8::Local<v8::Array> out);
 
 }  // namespace message_parser
