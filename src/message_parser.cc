@@ -28,7 +28,7 @@ namespace mdsf {
 
 namespace message_parser {
 
-Local<String> ParseNetworkMessages(Isolate* isolate,
+Local<String> ParseJSTPMessages(Isolate* isolate,
                                   const String::Utf8Value& in,
                                   Local<Array> out) {
   const size_t total_size = in.length();
