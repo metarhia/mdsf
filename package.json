@@ -24,6 +24,13 @@
   "main": "./lib/",
   "browser": "./dist/lib/serde-fallback.js",
   "readmeFilename": "README.md",
+  "files": [
+    "lib/",
+    "src/",
+    "dist/",
+    "binding.gyp",
+    "tools/build-native.js"
+  ],
   "scripts": {
     "test": "npm run lint && npm run test-node",
     "test-node": "node tools/run-node-tests.js",
