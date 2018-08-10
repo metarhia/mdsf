@@ -7,7 +7,7 @@ const http = require('http');
 const path = require('path');
 const readline = require('readline');
 
-const UNICODE_VERSION = '10.0.0';
+const UNICODE_VERSION = '11.0.0';
 const UCD_LINK = 'http://www.unicode.org/Public/' + UNICODE_VERSION +
   '/ucd/DerivedCoreProperties.txt';
 const fullTablesFilename = 'unicode_tables.h';
@@ -17,7 +17,7 @@ const getHeaderGuard = filename =>
 const getOutputPath = filename => path.join(__dirname, '../src', filename);
 
 const getFileHeader = filename =>
-  `// Copyright (c) 2017 mdsf project authors. Use of this source code is
+  `// Copyright (c) 2018 mdsf project authors. Use of this source code is
 // governed by the MIT license that can be found in the LICENSE file.
 //
 //
@@ -26,7 +26,7 @@ const getFileHeader = filename =>
 //
 // COPYRIGHT AND PERMISSION NOTICE
 //
-// Copyright © 1991-2017 Unicode, Inc. All rights reserved.
+// Copyright © 1991-2018 Unicode, Inc. All rights reserved.
 // Distributed under the Terms of Use in http://www.unicode.org/copyright.html.
 //
 // Permission is hereby granted, free of charge, to any person obtaining
