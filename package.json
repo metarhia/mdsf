@@ -22,7 +22,7 @@
     "url": "https://github.com/metarhia/mdsf"
   },
   "main": "./lib/",
-  "browser": "./dist/serde-fallback.js",
+  "browser": "./dist/lib/serde-fallback.js",
   "readmeFilename": "README.md",
   "scripts": {
     "test": "npm run lint && npm run test-node",
