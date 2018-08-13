@@ -10,8 +10,8 @@ const readline = require('readline');
 const UNICODE_VERSION = '11.0.0';
 const UCD_LINK = 'http://www.unicode.org/Public/' + UNICODE_VERSION +
   '/ucd/DerivedCoreProperties.txt';
-const fullTablesFilename = 'unicode_tables.h';
-const rangeTablesFilename = 'unicode_range_tables.h';
+const tablesFilename = 'unicode_tables.h';
+const generateFullTables = !process.env['MDSF_USE_SHORT_UNICODE_TABLES'];
 const getHeaderGuard = filename =>
   `SRC_${filename.replace(/\W/g, '_').toUpperCase()}_`;
 const getOutputPath = filename => path.join(__dirname, '../src', filename);
@@ -98,6 +98,7 @@ let idContinueTotalCount = 0;
 
 const lineRegex = /^([0-9A-F]{4,6})(?:\.\.([0-9A-F]{4,6}))? *; (\w+) #.*$/;
 
+console.log('Getting required data from Unicode website...');
 http.get(UCD_LINK, (res) => {
   const linereader = readline.createInterface({ input: res, historySize: 0 });
   linereader.on('line', (line) => {
@@ -157,30 +158,26 @@ function finish() {
   console.log(`ID_Start code points found: ${idStartTotalCount}`);
   console.log(`ID_Continue code points found: ${idContinueTotalCount}`);
 
-  idStartValues[0x24] = 1; // '$'
-  idContinueValues[0x24] = 1;
+  let tablesResult = getFileHeader(tablesFilename);
 
-  idStartValues[0x5F] = 1; // '_'
-  idContinueValues[0x5F] = 1;
+  if (generateFullTables) {
+    idStartValues[0x24] = 1; // '$'
+    idContinueValues[0x24] = 1;
 
-  idContinueValues[0x200C] = 1; // ZWNJ
-  idContinueValues[0x200D] = 1; // ZWJ
+    idStartValues[0x5F] = 1; // '_'
+    idContinueValues[0x5F] = 1;
 
-  let fullTablesResult = getFileHeader(fullTablesFilename);
-  let rangeTablesResult = getFileHeader(rangeTablesFilename) +
-    rangeTablesHeader;
+    idContinueValues[0x200C] = 1; // ZWNJ
+    idContinueValues[0x200D] = 1; // ZWJ
 
-  fullTablesResult += createFullTableArray('ID_START_FULL', idStartValues);
-  fullTablesResult +=
-    createFullTableArray('ID_CONTINUE_FULL', idContinueValues);
+    tablesResult += createFullTableArray('ID_START_FULL', idStartValues);
+    tablesResult += createFullTableArray('ID_CONTINUE_FULL', idContinueValues);
+  } else {
+    tablesResult += rangeTablesHeader;
+    tablesResult += createArrayOfRanges('ID_START_RANGES', idStartRanges);
+    tablesResult += createArrayOfRanges('ID_CONTINUE_RANGES', idContinueRanges);
+  }
 
-  rangeTablesResult += createArrayOfRanges('ID_START_RANGES', idStartRanges);
-  rangeTablesResult +=
-    createArrayOfRanges('ID_CONTINUE_RANGES', idContinueRanges);
-
-  fullTablesResult += `#endif  // ${getHeaderGuard(fullTablesFilename)}\n`;
-  rangeTablesResult += `#endif  // ${getHeaderGuard(rangeTablesFilename)}\n`;
-
-  fs.writeFileSync(getOutputPath(fullTablesFilename), fullTablesResult);
-  fs.writeFileSync(getOutputPath(rangeTablesFilename), rangeTablesResult);
+  tablesResult += `#endif  // ${getHeaderGuard(tablesFilename)}\n`;
+  fs.writeFileSync(getOutputPath(tablesFilename), tablesResult);
 }

@@ -27,6 +27,7 @@
   "files": [
     "lib/",
     "src/",
+    "!src/unicode_tables.h",
     "dist/",
     "binding.gyp",
     "tools/build-native.js"

@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const os = require('os');
+const path = require('path');
 const childProcess = require('child_process');
 
 const EXIT_SUCCESS = 0;
@@ -12,42 +13,55 @@ const EXIT_FAIL = 1;
 let action = process.argv.includes('--rebuild') ? 'rebuild' : 'build';
 const jobs = `-j${process.env.JOBS || os.cpus().length}`;
 
-fs.access('build', (error) => {
-  if (error) {
-    action = 'rebuild';
-  }
-
-  const nodeGyp = childProcess.spawn(
-    'node-gyp', [action, jobs], { shell: true });
+function runCommand(name, args, callback) {
+  const command = childProcess.spawn(
+    name, args, { shell: true });
   const errorLines = [];
 
-  nodeGyp.on('error', () => {
+  command.on('error', () => {
     handleBuildError(EXIT_FAIL);
   });
 
-  nodeGyp.stdout.pipe(process.stdout);
+  command.stdout.pipe(process.stdout);
 
-  nodeGyp.stderr.on('data', (data) => {
+  command.stderr.on('data', (data) => {
     const line = data.toString();
     console.error(line);
     errorLines.push(line);
   });
 
-  nodeGyp.on('exit', (code) => {
+  command.on('exit', (code) => {
     if (errorLines.length > 0) {
       fs.writeFileSync('builderror.log', errorLines.join('\n'));
     }
     if (code !== EXIT_SUCCESS) {
       handleBuildError(code);
     }
+    if (callback) {
+      callback();
+    }
   });
-});
+}
 
 function handleBuildError(code) {
   if (process.env.CI) {
     process.exit(code);
-  } else {
-    console.warn('Could not build mdsf native extensions, ' +
-      'JavaScript implementation will be used instead.');
   }
+  console.warn('Could not build mdsf native extensions, ' +
+    'JavaScript implementation will be used instead.');
+  process.exit(EXIT_SUCCESS);
 }
+
+fs.access('build', (error) => {
+  if (error) {
+    action = 'rebuild';
+  }
+
+  const buildNative = () => runCommand('node-gyp', [action, jobs]);
+
+  if (action === 'rebuild') {
+    runCommand(path.join(__dirname, 'make-unicode-tables.js'), [], buildNative);
+  } else {
+    buildNative();
+  }
+});

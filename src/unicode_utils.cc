@@ -8,11 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#ifdef _PARSER_USE_FULL_TABLES_
 #include "unicode_tables.h"
-#else
-#include "unicode_range_tables.h"
-#endif
 
 using std::size_t;
 using std::uint32_t;
