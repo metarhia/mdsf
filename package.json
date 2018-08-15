@@ -30,7 +30,8 @@
     "!src/unicode_tables.h",
     "dist/",
     "binding.gyp",
-    "tools/build-native.js"
+    "tools/build-native.js",
+    "tools/make-unicode-tables.js"
   ],
   "scripts": {
     "test": "npm run lint && npm run test-node",
