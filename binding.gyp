@@ -7,19 +7,9 @@
       '-std=c++11'
     ],
     'mdsf_debug_ccflags': ['-g', '-O0'],
-    'mdsf_release_ccflags': ['-O3']
+    'mdsf_release_ccflags': ['-O3'],
+    'mdsf_use_short_unicode_tables': '<!(node ./tools/echo-env MDSF_USE_SHORT_UNICODE_TABLES)'
   },
-  'conditions': [
-    ['OS == "win"', {
-      'variables': {
-        'mdsf_use_short_unicode_tables': '<!(echo %MDSF_USE_SHORT_UNICODE_TABLES%)'
-      }
-    }, {
-      'variables': {
-        'mdsf_use_short_unicode_tables': '<!(echo $MDSF_USE_SHORT_UNICODE_TABLES)'
-      }
-    }]
-  ],
   'targets': [
     {
       'target_name': 'mdsf',
@@ -30,7 +20,7 @@
         'src/unicode_utils.cc'
       ],
       'conditions': [
-        ['not mdsf_use_short_unicode_tables or mdsf_use_short_unicode_tables == "%MDSF_USE_SHORT_UNICODE_TABLES%"', {
+        ['not mdsf_use_short_unicode_tables', {
           'defines': ['_PARSER_USE_FULL_TABLES_']
         }]
       ],
