@@ -60,7 +60,11 @@ fs.access('build', (error) => {
   const buildNative = () => runCommand('node-gyp', [action, jobs]);
 
   if (action === 'rebuild') {
-    runCommand(path.join(__dirname, 'make-unicode-tables.js'), [], buildNative);
+    runCommand(
+      `node ${path.join(__dirname, 'make-unicode-tables.js')}`,
+      [],
+      buildNative
+    );
   } else {
     buildNative();
   }
