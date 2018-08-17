@@ -30,7 +30,7 @@
         'src/unicode_utils.cc'
       ],
       'conditions': [
-        ['not mdsf_use_short_unicode_tables', {
+        ['not mdsf_use_short_unicode_tables or mdsf_use_short_unicode_tables == "%MDSF_USE_SHORT_UNICODE_TABLES%"', {
           'defines': ['_PARSER_USE_FULL_TABLES_']
         }]
       ],
