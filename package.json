@@ -31,7 +31,8 @@
     "dist/",
     "binding.gyp",
     "tools/build-native.js",
-    "tools/make-unicode-tables.js"
+    "tools/make-unicode-tables.js",
+    "tools/echo-env.js"
   ],
   "scripts": {
     "test": "npm run lint && npm run test-node",
