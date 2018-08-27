@@ -38,7 +38,12 @@ void Parse(const FunctionCallbackInfo<Value>& args) {
   std::size_t length;
 
   if (args[0]->IsString()) {
-    String::Utf8Value str(args[0]);
+    String::Utf8Value str(
+#if NODE_MODULE_VERSION >= 57
+        isolate,
+#endif
+        args[0]
+    );
     length = str.length();
     result = mdsf::parser::Parse(isolate, *str, length);
   } else if (args[0]->IsUint8Array()) {
@@ -69,7 +74,12 @@ void ParseJSTPMessages(const FunctionCallbackInfo<Value>& args) {
 
   HandleScope scope(isolate);
 
-  String::Utf8Value str(args[0]->ToString());
+  String::Utf8Value str(
+#if NODE_MODULE_VERSION >= 57
+      isolate,
+#endif
+      args[0]->ToString()
+  );
   auto array = args[1].As<Array>();
   auto result = mdsf::message_parser::ParseJSTPMessages(isolate, str, array);
   args.GetReturnValue().Set(result);
