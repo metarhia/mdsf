@@ -1,6 +1,6 @@
 {
   "name": "mdsf",
-  "version": "1.0.2",
+  "version": "1.0.3-pre",
   "author": "Timur Shemsedinov <timur.shemsedinov@gmail.com>",
   "description": "Metarhia Data Serialization Format",
   "license": "MIT",
