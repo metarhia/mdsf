@@ -35,4 +35,9 @@ module.exports = [
     'address:{country:\'Ukraine\',city:\'Kiev\',zip:\'03056\',' +
     'street:\'Pobedy\',building:\'37\',floor:\'1\',room:\'158\'}}',
   },
+  {
+    name: 'object with identifier names as keys',
+    value: { $: 'dollar', _$_: 'multiple symbols' },
+    serialized: '{$:\'dollar\',_$_:\'multiple symbols\'}',
+  },
 ];
