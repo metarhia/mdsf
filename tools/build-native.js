@@ -24,13 +24,13 @@ function runCommand(name, args, callback) {
 
   command.stdout.pipe(process.stdout);
 
-  command.stderr.on('data', (data) => {
+  command.stderr.on('data', data => {
     const line = data.toString();
     console.error(line);
     errorLines.push(line);
   });
 
-  command.on('exit', (code) => {
+  command.on('exit', code => {
     if (errorLines.length > 0) {
       fs.writeFileSync('builderror.log', errorLines.join('\n'));
     }
@@ -52,7 +52,7 @@ function handleBuildError(code) {
   process.exit(EXIT_SUCCESS);
 }
 
-fs.access('build', (error) => {
+fs.access('build', error => {
   if (error) {
     action = 'rebuild';
   }

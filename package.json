@@ -52,15 +52,15 @@
     "node": ">=6.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.0.0",
-    "@babel/core": "^7.0.0",
-    "@babel/preset-env": "^7.0.0",
-    "eslint": "^4.19.1",
-    "eslint-config-metarhia": "^1.0.1",
+    "@babel/cli": "^7.2.0",
+    "@babel/core": "^7.2.0",
+    "@babel/preset-env": "^7.2.0",
+    "eslint": "^5.9.0",
+    "eslint-config-metarhia": "^6.1.0",
     "eslint-plugin-import": "^2.14.0",
-    "remark-cli": "^4.0.0",
+    "remark-cli": "^6.0.1",
     "remark-preset-lint-metarhia": "^1.0.2",
-    "remark-validate-links": "^7.0.0",
-    "tap": "^11.1.5"
+    "remark-validate-links": "^7.1.2",
+    "tap": "^12.1.0"
   }
 }
