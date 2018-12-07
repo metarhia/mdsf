@@ -99,9 +99,9 @@ let idContinueTotalCount = 0;
 const lineRegex = /^([0-9A-F]{4,6})(?:\.\.([0-9A-F]{4,6}))? *; (\w+) #.*$/;
 
 console.log('Getting required data from Unicode website...');
-http.get(UCD_LINK, (res) => {
+http.get(UCD_LINK, res => {
   const linereader = readline.createInterface({ input: res, historySize: 0 });
-  linereader.on('line', (line) => {
+  linereader.on('line', line => {
     const values = lineRegex.exec(line);
     if (values !== null) {
       const [ , start, end, category  ] = values;

@@ -35,9 +35,9 @@ const testCases = fs.readdirSync(testCasesPath)
   }))
   .filter(testCase => fs.statSync(testCase.path).isDirectory());
 
-testCases.forEach((testCase) => {
-  tap.test(testCase.name, (test) => {
-    fs.readdirSync(testCase.path).forEach((filename) => {
+testCases.forEach(testCase => {
+  tap.test(testCase.name, test => {
+    fs.readdirSync(testCase.path).forEach(filename => {
       const ext = path.extname(filename);
       if (!['.json', '.json5', '.js', '.txt'].includes(ext)) {
         return;
@@ -71,7 +71,7 @@ testCases.forEach((testCase) => {
       };
 
       const runTest = (parserName, parser) => {
-        test.test(`${testName} (${parserName} parser)`, (test) => {
+        test.test(`${testName} (${parserName} parser)`, test => {
           testCases[ext.slice(1)](test, parser);
           test.end();
         });
