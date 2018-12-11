@@ -157,6 +157,16 @@ test('must ignore negative space arguments', test => {
   test.end();
 });
 
+test('must not insert space into an empty array', test => {
+  test.strictSame(mdsf.stringify([], null, 2), '[]');
+  test.end();
+});
+
+test('must not insert space into an empty object', test => {
+  test.strictSame(mdsf.stringify({}, null, 2), '{}');
+  test.end();
+});
+
 test(
   'must ignore space that is neither a string/String nor a number/Number',
   test => {
