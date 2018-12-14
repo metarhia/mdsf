@@ -16,4 +16,9 @@ module.exports = [
     value: -Infinity,
     serialized: '-Infinity',
   },
+  {
+    name: 'Number object',
+    value: new Number(42),
+    serialized: '42',
+  },
 ];
