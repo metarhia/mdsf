@@ -21,4 +21,9 @@ module.exports = [
     value: Buffer.from('some binary data'),
     serialized: '\'c29tZSBiaW5hcnkgZGF0YQ==\'',
   },
+  {
+    name: 'String object',
+    value: new String('test data'),
+    serialized: `'test data'`,
+  },
 ];
