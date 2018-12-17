@@ -1,5 +1,14 @@
 'use strict';
 
+class StringDerivative extends String {
+  [Symbol.toPrimitive]() {
+    return '42';
+  }
+  toString() {
+    return '24';
+  }
+}
+
 module.exports = [
   {
     name: 'string containing inline comment',
@@ -25,5 +34,10 @@ module.exports = [
     name: 'String object',
     value: new String('test data'),
     serialized: `'test data'`,
+  },
+  {
+    name: 'string derivative with Symbol.toPrimitive',
+    value: new StringDerivative('23'),
+    serialized: `'42'`,
   },
 ];
