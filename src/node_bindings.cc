@@ -78,7 +78,7 @@ void ParseJSTPMessages(const FunctionCallbackInfo<Value>& args) {
 #if NODE_MODULE_VERSION >= 57
       isolate,
 #endif
-      args[0]->ToString()
+      args[0].As<String>()
   );
   std::size_t length = str.length();
   auto array = args[1].As<Array>();
