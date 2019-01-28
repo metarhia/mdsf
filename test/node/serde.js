@@ -16,13 +16,12 @@ testCases.serde.concat(testCases.serialization).forEach(testCase => {
 
 testCases.serde.concat(testCases.deserialization).forEach(testCase => {
   const runTest = (parserName, parser) => {
-    test(
-      `must deserialize ${testCase.name} using ${parserName} parser`,
-      test => {
-        test.strictSame(parser.parse(testCase.serialized), testCase.value);
-        test.end();
-      }
-    );
+    test(`must deserialize ${
+      testCase.name
+    } using ${parserName} parser`, test => {
+      test.strictSame(parser.parse(testCase.serialized), testCase.value);
+      test.end();
+    });
   };
   runTest('native', mdsf);
   runTest('js', jsParser);
@@ -30,13 +29,10 @@ testCases.serde.concat(testCases.deserialization).forEach(testCase => {
 
 testCases.invalid.forEach(testCase => {
   const runTest = (parserName, parser) => {
-    test(
-      `must not allow ${testCase.name} using ${parserName} parser`,
-      test => {
-        test.throws(() => parser.parse(testCase.value));
-        test.end();
-      }
-    );
+    test(`must not allow ${testCase.name} using ${parserName} parser`, test => {
+      test.throws(() => parser.parse(testCase.value));
+      test.end();
+    });
   };
   runTest('native', mdsf);
   runTest('js', jsParser);

@@ -28,21 +28,24 @@ test('must stringify objects with toJSON() method', test => {
   test.end();
 });
 
-test('must stringify objects with both toJSON() and toMDSF() methods' +
-  ' using toMDSF()', test => {
-  const obj = {
-    a: 10,
-    b: 20,
-    toJSON() {
-      return 30;
-    },
-    toMDSF() {
-      return [];
-    },
-  };
-  test.strictSame(mdsf.stringify(obj), '[]');
-  test.end();
-});
+test(
+  'must stringify objects with both toJSON() and toMDSF() methods' +
+    ' using toMDSF()',
+  test => {
+    const obj = {
+      a: 10,
+      b: 20,
+      toJSON() {
+        return 30;
+      },
+      toMDSF() {
+        return [];
+      },
+    };
+    test.strictSame(mdsf.stringify(obj), '[]');
+    test.end();
+  }
+);
 
 test('must stringify arrays with toJSON() method', test => {
   const arr = [1, 2, 3];
