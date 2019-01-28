@@ -8,13 +8,12 @@ const testCases = require('../fixtures/todo/serde');
 
 testCases.deserialization.forEach(testCase => {
   const runTest = (parserName, parser) => {
-    test(
-      `must deserialize ${testCase.name} using ${parserName} parser`,
-      test => {
-        test.strictSame(parser.parse(testCase.serialized), testCase.value);
-        test.end();
-      }
-    );
+    test(`must deserialize ${
+      testCase.name
+    } using ${parserName} parser`, test => {
+      test.strictSame(parser.parse(testCase.serialized), testCase.value);
+      test.end();
+    });
   };
   runTest('native', mdsf);
   runTest('js', jsParser);

@@ -1,0 +1,5 @@
+dist/
+site/
+test/fixtures/json5/
+.nyc_output/
+coverage/

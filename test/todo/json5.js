@@ -7,10 +7,7 @@ const mdsf = require('../..');
 const jsParser = require('../../lib/serde-fallback');
 
 const supportedByUs = {
-  arrays: [
-    'leading-comma-array',
-    'lone-trailing-comma-array',
-  ],
+  arrays: ['leading-comma-array', 'lone-trailing-comma-array'],
 };
 
 // Parses a JavaScript object, and if it's a sparse array,
@@ -28,7 +25,8 @@ function extendedEval(source) {
 }
 
 const testCasesPath = path.resolve(__dirname, '../fixtures/json5');
-const testCases = fs.readdirSync(testCasesPath)
+const testCases = fs
+  .readdirSync(testCasesPath)
   .map(caseName => ({
     name: caseName,
     path: path.join(testCasesPath, caseName),
