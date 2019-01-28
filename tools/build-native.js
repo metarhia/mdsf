@@ -14,8 +14,7 @@ let action = process.argv.includes('--rebuild') ? 'rebuild' : 'build';
 const jobs = `-j${process.env.JOBS || os.cpus().length}`;
 
 function runCommand(name, args, callback) {
-  const command = childProcess.spawn(
-    name, args, { shell: true });
+  const command = childProcess.spawn(name, args, { shell: true });
   const errorLines = [];
 
   command.on('error', () => {
@@ -47,8 +46,10 @@ function handleBuildError(code) {
   if (process.env.CI) {
     process.exit(code);
   }
-  console.warn('Could not build mdsf native extensions, ' +
-    'JavaScript implementation will be used instead.');
+  console.warn(
+    'Could not build mdsf native extensions, ' +
+      'JavaScript implementation will be used instead.'
+  );
   process.exit(EXIT_SUCCESS);
 }
 

@@ -73,27 +73,18 @@ test('must not use replacer for arrays', test => {
   test.end();
 });
 
-test(
-  'must ignore replacer elements that are neither strings nor numbers',
-  test => {
-    test.strictSame(
-      mdsf.stringify({ a: 1, b: 2 }, [{ a: 0, b: 0 }, true, 'a']),
-      '{a:1}'
-    );
-    test.end();
-  }
-);
+test('must ignore replacer elements that are neither strings nor numbers', test => {
+  test.strictSame(
+    mdsf.stringify({ a: 1, b: 2 }, [{ a: 0, b: 0 }, true, 'a']),
+    '{a:1}'
+  );
+  test.end();
+});
 
-test(
-  'must ignore replacer that is neither a function nor an array',
-  test => {
-    test.strictSame(
-      mdsf.stringify({ a: 1, b: 2 }, { a: 0, b: 0 }),
-      '{a:1,b:2}'
-    );
-    test.end();
-  }
-);
+test('must ignore replacer that is neither a function nor an array', test => {
+  test.strictSame(mdsf.stringify({ a: 1, b: 2 }, { a: 0, b: 0 }), '{a:1,b:2}');
+  test.end();
+});
 
 test('must support space as a string', test => {
   test.strictSame(mdsf.stringify(OBJECT, ['a'], '  '), '{\n  a: 42\n}');
@@ -167,18 +158,12 @@ test('must not insert space into an empty object', test => {
   test.end();
 });
 
-test(
-  'must ignore space which is a scalar that is neither a string nor a number',
-  test => {
-    test.strictSame(mdsf.stringify(OBJECT, ['a'], true), '{a:42}');
-    test.end();
-  }
-);
+test('must ignore space which is a scalar that is neither a string nor a number', test => {
+  test.strictSame(mdsf.stringify(OBJECT, ['a'], true), '{a:42}');
+  test.end();
+});
 
-test(
-  'must ignore space which is an object that is neither a String nor a Number',
-  test => {
-    test.strictSame(mdsf.stringify(OBJECT, ['a'], new Boolean(true)), '{a:42}');
-    test.end();
-  }
-);
+test('must ignore space which is an object that is neither a String nor a Number', test => {
+  test.strictSame(mdsf.stringify(OBJECT, ['a'], new Boolean(true)), '{a:42}');
+  test.end();
+});
