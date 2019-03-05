@@ -61,7 +61,7 @@ test('must use replacer as an array', test => {
   test.end();
 });
 
-test('must use replacer as an array with Nuber and String elements', test => {
+test('must use replacer as an array with Number and String elements', test => {
   const object = { a: 42, b: 24, 0: 21, 1: 12 };
   const allowedFields = [new Number(0), new String('a')];
   test.strictSame(mdsf.stringify(object, allowedFields), `{'0':21,a:42}`);
