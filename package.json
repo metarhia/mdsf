@@ -27,7 +27,6 @@
   "files": [
     "lib/",
     "src/",
-    "!src/unicode_tables.h",
     "dist/",
     "binding.gyp",
     "tools/build-native.js",
@@ -40,12 +39,12 @@
     "test-todo": "tap test/todo",
     "test-coverage": "nyc npm run test-node",
     "lint": "eslint . && remark . && prettier -c \"**/*.js\" \"**/*.json\" \"**/*.md\" \".*rc\" \"**/*.yml\"",
-    "install": "npm run rebuild-node",
+    "install": "npm run build-node",
     "build": "npm run build-node && npm run build-browser",
     "build-node": "node tools/build-native",
     "rebuild-node": "node tools/build-native --rebuild",
     "build-browser": "babel -d ./dist/ lib/serde-fallback.js lib/stringify.js",
-    "prepublish": "npm run build-browser",
+    "prepublish": "npm run -s rebuild-node && npm run -s build-browser",
     "pretest": "npm run build-node",
     "fmt": "prettier --write \"**/*.js\" \"**/*.json\" \"**/*.md\" \".*rc\" \"**/*.yml\""
   },
