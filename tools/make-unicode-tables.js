@@ -7,7 +7,7 @@ const http = require('http');
 const path = require('path');
 const readline = require('readline');
 
-const UNICODE_VERSION = '11.0.0';
+const UNICODE_VERSION = '12.0.0';
 const UCD_LINK =
   'http://www.unicode.org/Public/' +
   UNICODE_VERSION +
@@ -19,7 +19,7 @@ const getHeaderGuard = filename =>
 const getOutputPath = filename => path.join(__dirname, '../src', filename);
 
 const getFileHeader = filename =>
-  `// Copyright (c) 2018 mdsf project authors. Use of this source code is
+  `// Copyright (c) 2019 mdsf project authors. Use of this source code is
 // governed by the MIT license that can be found in the LICENSE file.
 //
 //
@@ -28,8 +28,8 @@ const getFileHeader = filename =>
 //
 // COPYRIGHT AND PERMISSION NOTICE
 //
-// Copyright © 1991-2018 Unicode, Inc. All rights reserved.
-// Distributed under the Terms of Use in http://www.unicode.org/copyright.html.
+// Copyright © 1991-2019 Unicode, Inc. All rights reserved.
+// Distributed under the Terms of Use in https://www.unicode.org/copyright.html.
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of the Unicode data files and any associated documentation
