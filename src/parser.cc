@@ -489,12 +489,12 @@ MaybeLocal<Value> ParseString(Isolate*    isolate,
 
   Local<String> result_str;
   if (result) {
-    result_str = String::NewFromUtf8(isolate, result,
-        NewStringType::kNormal, static_cast<int>(res_index)).ToLocalChecked();
+    result_str = NewFromUtf8OrEmpty(isolate, result, v8::NewStringType::kNormal,
+        static_cast<int>(res_index));
     delete[] result;
   } else {
-    result_str = String::NewFromUtf8(isolate, begin + 1,
-        NewStringType::kNormal, static_cast<int>(*size - 2)).ToLocalChecked();
+    result_str = NewFromUtf8OrEmpty(isolate, begin + 1,
+        v8::NewStringType::kNormal, static_cast<int>(*size - 2));
   }
   return result_str;
 }
@@ -760,15 +760,13 @@ MaybeLocal<String> ParseKeyInObject(Isolate*    isolate,
       } else {
         if (current_length != 0) {
           if (!fallback) {
-            result = String::NewFromUtf8(isolate, begin,
-                                         NewStringType::kInternalized,
-                                         static_cast<int>(current_length))
-                                             .ToLocalChecked();
+            result = NewFromUtf8OrEmpty(isolate, begin,
+                                        v8::NewStringType::kInternalized,
+                                        static_cast<int>(current_length));
           } else {
-            result = String::NewFromUtf8(isolate, fallback,
-                                         NewStringType::kInternalized,
-                                         static_cast<int>(fallback_length))
-                                             .ToLocalChecked();
+            result = NewFromUtf8OrEmpty(isolate, fallback,
+                                        v8::NewStringType::kInternalized,
+                                        static_cast<int>(fallback_length));
           }
           break;
         } else {
@@ -912,8 +910,13 @@ MaybeLocal<Value> ParseArray(Isolate*    isolate,
         return t;
       }
       if (!(current_type == Type::kUndefined && begin[i] == ']')) {
-        array->Set(static_cast<uint32_t>(current_element++),
-                   t.ToLocalChecked());
+        Maybe<bool> is_ok = array->Set(isolate->GetCurrentContext(),
+                                       static_cast<uint32_t>(current_element++),
+                                       t.ToLocalChecked());
+        if (is_ok.IsNothing()) {
+          THROW_EXCEPTION(Error, "Cannot add element to array");
+          return MaybeLocal<Value>();
+        }
         is_empty = false;
       }
 
