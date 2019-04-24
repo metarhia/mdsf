@@ -74,7 +74,7 @@ Local<String> ParseJSTPMessages(Isolate* isolate,
     parsed_length = i + 1;
   }
 
-  return String::NewFromUtf8(isolate, str + parsed_length);
+  return NewFromUtf8OrEmpty(isolate, str + parsed_length);
 }
 
 }  // namespace message_parser
