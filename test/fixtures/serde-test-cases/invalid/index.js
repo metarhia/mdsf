@@ -53,4 +53,20 @@ module.exports = [
     name: 'overflow in Unicode escape sequence',
     value: "'\\u{420420}'",
   },
+  {
+    name: 'incomplete NaN literal',
+    value: '{ a: NaN, b: Na }',
+  },
+  {
+    name: 'incomplete Infinity literal',
+    value: '{ a: Infinity, b: Inf }',
+  },
+  {
+    name: 'invalid numeric literal starting with part of NaN literal',
+    value: '{ a: NaN, b: Na123 }',
+  },
+  {
+    name: 'invalid numeric literal starting with part of Infinity literal',
+    value: '{ a: Infinity, b: Infin123 }',
+  },
 ];
