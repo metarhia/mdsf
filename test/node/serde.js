@@ -16,9 +16,7 @@ testCases.serde.concat(testCases.serialization).forEach(testCase => {
 
 testCases.serde.concat(testCases.deserialization).forEach(testCase => {
   const runTest = (parserName, parser) => {
-    test(`must deserialize ${
-      testCase.name
-    } using ${parserName} parser`, test => {
+    test(`must deserialize ${testCase.name} using ${parserName} parser`, test => {
       test.strictSame(parser.parse(testCase.serialized), testCase.value);
       test.end();
     });
