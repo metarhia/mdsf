@@ -16,7 +16,7 @@ const OBJECT = {
 
 test('must call replacer the same way as JSON.stringify', test => {
   const getReplacer = array =>
-    function(key, value) {
+    function (key, value) {
       array.push([key, value, this]);
       return value;
     };
